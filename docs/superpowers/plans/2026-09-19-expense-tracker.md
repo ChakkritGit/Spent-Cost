@@ -1434,6 +1434,119 @@ EOF
 
 ---
 
+### Task 5b: Visual direction — palette, typeface, sidebar, card language
+
+The client supplied reference screens after Task 5 shipped. This task applies
+that direction to the shell so Tasks 7–10 are built on it rather than retrofitted.
+
+**Read `docs/superpowers/specs/2026-09-20-visual-direction.md` first** — it is the
+authority for every value in this task.
+
+**Files:**
+- Modify: `src/app/globals.css` (palette, status tokens, font variable)
+- Modify: `src/app/layout.tsx` (font loading)
+- Modify: `src/app/(app)/layout.tsx` (sidebar at `lg`, top bar)
+- Modify: `src/components/nav.tsx` (one component, two presentations)
+- Create: `src/components/status-pill.tsx`
+- Modify: `src/app/login/page.tsx` (it still uses `neutral-*`, predating the tokens)
+
+**Interfaces:**
+- Consumes: the tokens Task 5 established through `@theme inline`.
+- Produces: `--color-accent-bright`, `--color-paid|due|overdue` (+ `-fg` pairs);
+  `<StatusPill state="paid" | "due" | "overdue" />`; a shell that is a sidebar
+  from `lg` and a bottom bar below it.
+
+- [ ] **Step 1: Swap the palette**
+
+Replace the teal values in `:root` and `:root.dark` with the spec's greens, and
+add `--accent-bright` plus the three status pairs. Map every new token through
+`@theme inline` — a token defined but not mapped produces a class that silently
+does nothing, which Task 5's review specifically checked for.
+
+Dark theme: keep the same roles. Ground `#0c110e`, card `#131a16`, line `#1f2a24`,
+accent `#4ade80` (the brighter green reads better on a dark ground and still
+clears contrast against it), accent-soft `#14321f`.
+
+- [ ] **Step 2: Load IBM Plex Sans Thai**
+
+In `src/app/layout.tsx`, via `next/font/google` so it self-hosts:
+
+```tsx
+import { IBM_Plex_Sans_Thai } from "next/font/google";
+
+const sans = IBM_Plex_Sans_Thai({
+  subsets: ["thai", "latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-sans",
+  display: "swap",
+});
+```
+
+Put `sans.variable` on `<html>` and set `font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif` on `body` in `globals.css`. Keep the existing
+`font-feature-settings: "tnum"`.
+
+Latin-only faces are not an option here: Thai would fall through to a system
+font and change letterforms mid-row, and every list in this app mixes scripts.
+
+- [ ] **Step 3: Sidebar at `lg`, bottom bar below**
+
+`src/components/nav.tsx` keeps one link list and renders it two ways — a fixed
+240px column from `lg`, the existing bottom bar below. Do not fork it into two
+components with duplicated link data.
+
+The bottom bar's measured values are load-bearing and must survive: `text-xs
+sm:text-sm`, `px-2 sm:px-3`, `py-3.5 sm:py-3`. "รายการประจำ" wraps to two lines at
+375px at any larger size, and the vertical padding is what holds the 44px tap
+target once `text-xs` shrinks the line box. Re-measure after the change.
+
+`src/app/(app)/layout.tsx` gains `lg:pl-60` for the sidebar and keeps `pb-24
+sm:pb-10` for the bottom bar.
+
+- [ ] **Step 4: Status pill**
+
+```tsx
+const STATES = {
+  paid: { label: "จ่ายแล้ว", cls: "bg-paid text-paid-fg" },
+  due: { label: "ค้างจ่าย", cls: "bg-due text-due-fg" },
+  overdue: { label: "เกินกำหนด", cls: "bg-overdue text-overdue-fg" },
+} as const;
+
+export function StatusPill({ state }: { state: keyof typeof STATES }) {
+  const { label, cls } = STATES[state];
+  return <span className={`rounded-full px-2 py-0.5 text-xs ${cls}`}>{label}</span>;
+}
+```
+
+- [ ] **Step 5: Bring the login page onto the tokens**
+
+Replace its `neutral-*` and `red-*` classes with token classes. Task 5's review
+flagged it as a real consistency gap left for whichever task next touched it.
+
+- [ ] **Step 6: Verify**
+
+`npm run build`, `npm run typecheck`, `npm run lint`, `npm test`. Then measure the
+nav in headless Chromium at 375px, 768px and 1280px: one line per label and a
+≥44px target at the two smaller widths, sidebar present at 1280px. Screenshot
+`/login` in both themes and look at it.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add -A
+git commit -m "$(cat <<'EOF'
+Apply the client's visual direction to the shell
+
+Green palette with status tokens, IBM Plex Sans Thai so Thai and Latin
+come from one hand, a sidebar from lg with the measured bottom bar kept
+below it, and the login page moved onto the tokens it predated.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
 ### Task 7: Dashboard — summary cards and the month's entries
 
 **Files:**
@@ -1707,7 +1820,10 @@ EOF
 
 ### Task 8: Charts — six-month bars and a category donut
 
-Before writing this task, load the `dataviz` skill. It settles the palette, the axis and label rules, and the accessible contrast pairing used below; do not pick chart colours ad hoc.
+Before writing this task, load the `dataviz` skill, and read
+`docs/superpowers/specs/2026-09-20-visual-direction.md` — the bar chart uses a
+`--accent` → `--accent-bright` vertical gradient and the donut carries its total
+in the middle, per the client's reference. It settles the palette, the axis and label rules, and the accessible contrast pairing used below; do not pick chart colours ad hoc.
 
 **Files:**
 - Create: `src/components/bar-chart.tsx`
