@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { plannedRowsFor, getPlans } from "@/lib/data";
 import { addMonths } from "@/lib/month";
 import { hashPin } from "@/lib/pin";
+import { dayOfMonth, num, positiveNum, text } from "@/lib/validate";
 
 async function userId(): Promise<string> {
   const supabase = await createClient();
@@ -12,34 +13,6 @@ async function userId(): Promise<string> {
   if (!user) throw new Error("ไม่ได้เข้าสู่ระบบ");
   return user.id;
 }
-
-// Form input is a trust boundary: an empty or malformed value must not reach
-// PostgREST as NaN (-> null -> NOT NULL violation) or a negative number
-// (-> a check constraint violation), both of which surface as a raw
-// PostgREST error object instead of something a caller can show.
-const num = (v: FormDataEntryValue | null, field: string): number => {
-  const raw = String(v ?? "").trim();
-  if (raw === "") throw new Error(`กรุณาระบุ${field}`);
-  const n = Number(raw.replace(/,/g, ""));
-  if (!Number.isFinite(n)) throw new Error(`${field}ไม่ถูกต้อง`);
-  if (n < 0) throw new Error(`${field}ต้องไม่ติดลบ`);
-  return n;
-};
-
-// day_of_month is a numeric field too, but the DB also requires it to be a
-// whole number between 1 and 31 — catch that here with a Thai message
-// instead of letting the check constraint reject it.
-const dayOfMonth = (v: FormDataEntryValue | null): number => {
-  const n = num(v, "วันที่เรียกเก็บเงิน");
-  if (!Number.isInteger(n) || n < 1 || n > 31) throw new Error("วันที่เรียกเก็บเงินต้องเป็นจำนวนเต็ม 1-31");
-  return n;
-};
-
-const text = (v: FormDataEntryValue | null, field: string): string => {
-  const s = String(v ?? "").trim();
-  if (s === "") throw new Error(`กรุณาระบุ${field}`);
-  return s;
-};
 
 export async function savePlan(formData: FormData) {
   const supabase = await createClient();
@@ -51,7 +24,7 @@ export async function savePlan(formData: FormData) {
     amount: num(formData.get("amount"), "จำนวนเงิน"),
     category: text(formData.get("category"), "หมวดหมู่"),
     day_of_month: dayOfMonth(formData.get("day_of_month")),
-    total_amount: total === "" ? null : num(total, "ยอดรวมทั้งหมด"),
+    total_amount: total === "" ? null : positiveNum(total, "ยอดรวมทั้งหมด"),
     active: formData.get("active") !== null,
   };
   const { error, data } = id
