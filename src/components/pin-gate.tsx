@@ -1,39 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { verifyPin } from "@/app/actions";
 
 const KEY = "pin-ok";
 
+// Nothing external ever pushes a change here — sessionStorage only changes
+// from this component's own submit handler, which already re-renders
+// through its own state. The no-op subscribe is this hook's documented
+// shape for "give me a synchronous, hydration-safe read of something the
+// server can't see," with no effect and no post-mount flash required.
+const subscribe = () => () => {};
+const getSnapshot = () => sessionStorage.getItem(KEY) === "1";
+const getServerSnapshot = () => false;
+
 export function PinGate({ hasPin, children }: { hasPin: boolean; children: React.ReactNode }) {
-  // Starts locked and unlocks in an effect: sessionStorage does not exist during
-  // the server render, and reading it in render would mismatch on hydration.
-  const [unlocked, setUnlocked] = useState(false);
-  const [ready, setReady] = useState(false);
+  const storedUnlock = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const [verified, setVerified] = useState(false);
   const [pin, setPin] = useState("");
   const [wrong, setWrong] = useState(false);
-
-  useEffect(() => {
-    // sessionStorage only exists client-side, so this can't be computed during
-    // render (would mismatch server/client on hydration) or via
-    // useSyncExternalStore (nothing external notifies same-tab writes).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setUnlocked(!hasPin || sessionStorage.getItem(KEY) === "1");
-    setReady(true);
-  }, [hasPin]);
+  const unlocked = !hasPin || storedUnlock || verified;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (await verifyPin(pin)) {
       sessionStorage.setItem(KEY, "1");
-      setUnlocked(true);
+      setVerified(true);
     } else {
       setWrong(true);
       setPin("");
     }
   }
 
-  if (!ready) return null;
   if (unlocked) return <>{children}</>;
 
   return (
@@ -51,7 +49,7 @@ export function PinGate({ hasPin, children }: { hasPin: boolean; children: React
           aria-label="PIN"
           aria-invalid={wrong}
         />
-        <button type="submit" className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white">
+        <button type="submit" className="rounded-lg bg-accent px-3 py-3 text-sm font-medium text-white">
           ปลดล็อก
         </button>
       </form>

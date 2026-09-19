@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { plannedRowsFor, getPlans } from "@/lib/data";
 import { addMonths } from "@/lib/month";
 import { hashPin } from "@/lib/pin";
-import { dayOfMonth, num, positiveNum, text } from "@/lib/validate";
+import { dayOfMonth, num, pinFormat, positiveNum, text } from "@/lib/validate";
 
 async function userId(): Promise<string> {
   const supabase = await createClient();
@@ -108,7 +108,7 @@ export async function generateMonth(year: number, month: number) {
 export async function setPin(pin: string) {
   const supabase = await createClient();
   const id = await userId();
-  const { error } = await supabase.from("profiles").update({ pin_hash: await hashPin(id, pin) }).eq("id", id);
+  const { error } = await supabase.from("profiles").update({ pin_hash: await hashPin(id, pinFormat(pin)) }).eq("id", id);
   if (error) throw error;
   revalidatePath("/", "layout");
 }

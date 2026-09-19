@@ -42,3 +42,11 @@ export const text = (v: FormDataEntryValue | null, field: string): string => {
   if (s === "") throw new Error(`กรุณาระบุ${field}`);
   return s;
 };
+
+// The <input pattern> in the settings form is a UX hint, not a trust
+// boundary — a raw POST can send anything. Enforce the same 4-8 digit shape
+// here before it is hashed and stored.
+export const pinFormat = (raw: string): string => {
+  if (!/^[0-9]{4,8}$/.test(raw)) throw new Error("PIN ต้องเป็นตัวเลข 4-8 หลัก");
+  return raw;
+};

@@ -1,10 +1,13 @@
-import { clearPin, setPin } from "@/app/actions";
+import { setPin } from "@/app/actions";
+import { ClearPinButton } from "@/components/clear-pin-button";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
-  const { data } = await supabase.from("profiles").select("pin_hash").single();
-  const hasPin = Boolean(data?.pin_hash);
+  const { data, error } = await supabase.from("profiles").select("pin_hash").single();
+  // Fails closed to match verifyPin: a fetch error is not "no PIN set", so
+  // treat it as if a PIN exists rather than silently offering to set a new one.
+  const hasPin = error ? true : Boolean(data?.pin_hash);
 
   return (
     <div className="flex flex-col gap-6">
@@ -22,15 +25,12 @@ export default async function SettingsPage() {
             pattern="[0-9]{4,8}"
             required
             placeholder={hasPin ? "เปลี่ยน PIN" : "ตั้ง PIN 4–8 หลัก"}
+            aria-label="PIN"
             className="flex-1 rounded-lg border border-line bg-bg px-3 py-2"
           />
-          <button className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white">บันทึก</button>
+          <button className="rounded-lg bg-accent px-3 py-3 text-sm font-medium text-white">บันทึก</button>
         </form>
-        {hasPin && (
-          <form action={async () => { "use server"; await clearPin(); }} className="mt-2">
-            <button className="text-sm text-muted underline">ปิดการใช้ PIN</button>
-          </form>
-        )}
+        {hasPin && <ClearPinButton />}
       </section>
     </div>
   );
