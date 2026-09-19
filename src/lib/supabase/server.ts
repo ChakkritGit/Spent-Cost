@@ -14,7 +14,7 @@ export async function createClient() {
             for (const { name, value, options } of toSet) cookieStore.set(name, value, options);
           } catch {
             // Called from a Server Component, where cookies are read-only.
-            // The middleware refreshes the session, so this is safe to ignore.
+            // The proxy (src/proxy.ts) refreshes the session, so this is safe to ignore.
           }
         },
       },

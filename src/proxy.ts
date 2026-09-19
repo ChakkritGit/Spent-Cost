@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isPublicPath } from "@/lib/auth-paths";
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -23,8 +24,7 @@ export async function proxy(request: NextRequest) {
   // than trusting a cookie the browser could have been handed.
   const { data: { user } } = await supabase.auth.getUser();
 
-  const isPublic = request.nextUrl.pathname.startsWith("/login") || request.nextUrl.pathname.startsWith("/auth");
-  if (!user && !isPublic) {
+  if (!user && !isPublicPath(request.nextUrl.pathname)) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
   return response;
