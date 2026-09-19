@@ -1442,10 +1442,47 @@ EOF
 - Create: `src/components/entry-row.tsx`
 - Create: `src/components/month-switcher.tsx`
 - Create: `src/components/generate-month-button.tsx`
+- Create: `src/components/entry-form.tsx`
 
 **Interfaces:**
-- Consumes: `getPlans`, `getEntriesForMonths`, `getAllDebtEntries` from `@/lib/data`; `summarise`, `baht` from `@/lib/money`; `monthKey`, `addMonths` from `@/lib/month`; `togglePaid`, `generateMonth` from `@/app/actions`.
+- Consumes: `getPlans`, `getEntriesForMonths`, `getAllDebtEntries` from `@/lib/data`; `summarise`, `baht` from `@/lib/money`; `monthKey`, `addMonths` from `@/lib/month`; `togglePaid`, `generateMonth`, `saveEntry`, `deleteEntry` from `@/app/actions`.
 - Produces: the dashboard at `/`, reading `?y=&m=` for the displayed month (defaults to today).
+
+**Plan correction — read this before Step 1.** As originally written, this plan built
+`saveEntry` and `deleteEntry` in Task 4 and then never called them from anywhere, which
+would ship an expense tracker that cannot record a one-off expense and cannot delete an
+entry. The spec names "a one-off meal — an `entry` with `plan_id` null" as a shape the
+model covers, so the capability is promised and was simply missing from the UI. This task
+closes it: Step 3a adds an entry form, and Step 2's `EntryRow` gains a delete control.
+
+- [ ] **Step 3a: Write the one-off entry form**
+
+`src/components/entry-form.tsx`. A server-action form, same shape as the plan form in
+Task 9. The date field is a native `<input type="date">` — no picker library.
+
+```tsx
+import { saveEntry } from "@/app/actions";
+
+export function EntryForm({ defaultDate }: { defaultDate: string }) {
+  const field = "w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm";
+  return (
+    <form action={saveEntry} className="flex flex-col gap-3 rounded-xl border border-line bg-card p-4">
+      <input name="name" required placeholder="ชื่อรายการ เช่น ค่าอาหาร" className={field} />
+      <div className="grid grid-cols-2 gap-3">
+        <input name="amount" required type="number" step="0.01" min="0" placeholder="จำนวนเงิน" className={field} />
+        <input name="due_date" required type="date" defaultValue={defaultDate} className={field} />
+      </div>
+      <input name="category" required placeholder="หมวด เช่น อาหาร" className={field} />
+      <button className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white">
+        เพิ่มรายการครั้งเดียว
+      </button>
+    </form>
+  );
+}
+```
+
+`saveEntry` reads `plan_id` from the form and gets `null` when the field is absent, which
+is exactly what a one-off needs — so the form deliberately has no `plan_id` input.
 
 - [ ] **Step 1: Write the summary cards**
 
@@ -1484,7 +1521,7 @@ export function SummaryCards({ spent, outstanding, debtRemaining, debtPaid }: {
 "use client";
 
 import { useTransition } from "react";
-import { togglePaid } from "@/app/actions";
+import { deleteEntry, togglePaid } from "@/app/actions";
 import { baht } from "@/lib/money";
 import type { Entry } from "@/lib/types";
 
@@ -1507,6 +1544,14 @@ export function EntryRow({ entry }: { entry: Entry }) {
         <p className="text-xs text-muted">วันที่ {day} · {entry.category}</p>
       </div>
       <p className="shrink-0 text-sm tabular-nums">{baht(entry.amount)}</p>
+      <button
+        onClick={() => start(() => { void deleteEntry(entry.id); })}
+        disabled={pending}
+        aria-label={`ลบ ${entry.name}`}
+        className="shrink-0 px-1 text-xs text-muted disabled:opacity-50"
+      >
+        ลบ
+      </button>
     </li>
   );
 }
@@ -1572,12 +1617,13 @@ export function GenerateMonthButton({ year, month }: { year: number; month: numb
 `src/app/(app)/page.tsx`:
 
 ```tsx
+import { EntryForm } from "@/components/entry-form";
 import { EntryRow } from "@/components/entry-row";
 import { GenerateMonthButton } from "@/components/generate-month-button";
 import { MonthSwitcher } from "@/components/month-switcher";
 import { SummaryCards } from "@/components/summary-cards";
 import { getAllDebtEntries, getEntriesForMonths, getPlans } from "@/lib/data";
-import { monthKey } from "@/lib/month";
+import { daysInMonth, dueDateFor, monthKey } from "@/lib/month";
 import { summarise } from "@/lib/money";
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ y?: string; m?: string }> }) {
@@ -1610,6 +1656,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         ) : (
           <ul>{monthEntries.map((e) => <EntryRow key={e.id} entry={e} />)}</ul>
         )}
+      </section>
+      <section>
+        <h2 className="mb-2 text-sm font-medium text-muted">เพิ่มรายการครั้งเดียว</h2>
+        <EntryForm defaultDate={dueDateFor(year, month, Math.min(now.getDate(), daysInMonth(year, month)))} />
       </section>
       <GenerateMonthButton year={year} month={month} />
     </div>
