@@ -3,14 +3,14 @@ import { createClient } from "@/lib/supabase/server";
 import { addMonths, dueDateFor, monthKey } from "@/lib/month";
 import type { Entry, Plan } from "@/lib/types";
 
-/** PostgREST sends numeric(12,2) as a JSON number, but coerce at the boundary so a driver change cannot turn amounts into strings downstream. */
-const toPlan = (r: Record<string, unknown>): Plan => ({
+/** PostgREST sends numeric(12,2) as a JSON number, but coerce at the boundary so a driver change cannot turn amounts into strings downstream. Exported so the coercion itself is tested, not just inferred from callers. */
+export const toPlan = (r: Record<string, unknown>): Plan => ({
   ...(r as Plan),
   amount: Number(r.amount),
   total_amount: r.total_amount === null ? null : Number(r.total_amount),
 });
 
-const toEntry = (r: Record<string, unknown>): Entry => ({ ...(r as Entry), amount: Number(r.amount) });
+export const toEntry = (r: Record<string, unknown>): Entry => ({ ...(r as Entry), amount: Number(r.amount) });
 
 export async function getPlans(): Promise<Plan[]> {
   const supabase = await createClient();
@@ -39,7 +39,7 @@ export async function getEntriesForMonths(year: number, month: number, count: nu
   return getEntries(from, to);
 }
 
-/** Every entry attached to a plan, for lifetime debt progress. */
+/** Every entry attached to a plan, paid or not — callers filter `paid_at` themselves (lifetime debt progress wants only the paid ones; an unpaid-debt view would want the rest). */
 export async function getAllDebtEntries(): Promise<Entry[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("entries").select("*").not("plan_id", "is", null);

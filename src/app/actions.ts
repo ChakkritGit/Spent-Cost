@@ -13,7 +13,33 @@ async function userId(): Promise<string> {
   return user.id;
 }
 
-const num = (v: FormDataEntryValue | null) => Number(String(v ?? "").replace(/,/g, ""));
+// Form input is a trust boundary: an empty or malformed value must not reach
+// PostgREST as NaN (-> null -> NOT NULL violation) or a negative number
+// (-> a check constraint violation), both of which surface as a raw
+// PostgREST error object instead of something a caller can show.
+const num = (v: FormDataEntryValue | null, field: string): number => {
+  const raw = String(v ?? "").trim();
+  if (raw === "") throw new Error(`กรุณาระบุ${field}`);
+  const n = Number(raw.replace(/,/g, ""));
+  if (!Number.isFinite(n)) throw new Error(`${field}ไม่ถูกต้อง`);
+  if (n < 0) throw new Error(`${field}ต้องไม่ติดลบ`);
+  return n;
+};
+
+// day_of_month is a numeric field too, but the DB also requires it to be a
+// whole number between 1 and 31 — catch that here with a Thai message
+// instead of letting the check constraint reject it.
+const dayOfMonth = (v: FormDataEntryValue | null): number => {
+  const n = num(v, "วันที่เรียกเก็บเงิน");
+  if (!Number.isInteger(n) || n < 1 || n > 31) throw new Error("วันที่เรียกเก็บเงินต้องเป็นจำนวนเต็ม 1-31");
+  return n;
+};
+
+const text = (v: FormDataEntryValue | null, field: string): string => {
+  const s = String(v ?? "").trim();
+  if (s === "") throw new Error(`กรุณาระบุ${field}`);
+  return s;
+};
 
 export async function savePlan(formData: FormData) {
   const supabase = await createClient();
@@ -21,25 +47,29 @@ export async function savePlan(formData: FormData) {
   const total = String(formData.get("total_amount") ?? "").trim();
   const row = {
     user_id: await userId(),
-    name: String(formData.get("name")),
-    amount: num(formData.get("amount")),
-    category: String(formData.get("category")),
-    day_of_month: num(formData.get("day_of_month")),
-    total_amount: total === "" ? null : num(total),
+    name: text(formData.get("name"), "ชื่อ"),
+    amount: num(formData.get("amount"), "จำนวนเงิน"),
+    category: text(formData.get("category"), "หมวดหมู่"),
+    day_of_month: dayOfMonth(formData.get("day_of_month")),
+    total_amount: total === "" ? null : num(total, "ยอดรวมทั้งหมด"),
     active: formData.get("active") !== null,
   };
-  const { error } = id
-    ? await supabase.from("plans").update(row).eq("id", String(id))
+  const { error, data } = id
+    ? await supabase.from("plans").update(row).eq("id", String(id)).select("id")
     : await supabase.from("plans").insert(row);
   if (error) throw error;
+  // RLS filters the update to zero rows for a stale id or someone else's
+  // row without erroring — treat that as a failure, not a silent no-op.
+  if (id && (data?.length ?? 0) === 0) throw new Error("ไม่พบแผนที่จะแก้ไข");
   revalidatePath("/plans");
   revalidatePath("/");
 }
 
 export async function deletePlan(id: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from("plans").delete().eq("id", id);
+  const { error, data } = await supabase.from("plans").delete().eq("id", id).select("id");
   if (error) throw error;
+  if ((data?.length ?? 0) === 0) throw new Error("ไม่พบแผนที่จะลบ");
   revalidatePath("/plans");
   revalidatePath("/");
 }
@@ -50,32 +80,36 @@ export async function saveEntry(formData: FormData) {
   const row = {
     user_id: await userId(),
     plan_id: (formData.get("plan_id") as string) || null,
-    name: String(formData.get("name")),
-    amount: num(formData.get("amount")),
-    category: String(formData.get("category")),
+    name: text(formData.get("name"), "ชื่อ"),
+    amount: num(formData.get("amount"), "จำนวนเงิน"),
+    category: text(formData.get("category"), "หมวดหมู่"),
     due_date: String(formData.get("due_date")),
   };
-  const { error } = id
-    ? await supabase.from("entries").update(row).eq("id", String(id))
+  const { error, data } = id
+    ? await supabase.from("entries").update(row).eq("id", String(id)).select("id")
     : await supabase.from("entries").insert(row);
   if (error) throw error;
+  if (id && (data?.length ?? 0) === 0) throw new Error("ไม่พบรายการที่จะแก้ไข");
   revalidatePath("/", "layout");
 }
 
 export async function deleteEntry(id: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from("entries").delete().eq("id", id);
+  const { error, data } = await supabase.from("entries").delete().eq("id", id).select("id");
   if (error) throw error;
+  if ((data?.length ?? 0) === 0) throw new Error("ไม่พบรายการที่จะลบ");
   revalidatePath("/", "layout");
 }
 
 export async function togglePaid(id: string, paid: boolean) {
   const supabase = await createClient();
-  const { error } = await supabase
+  const { error, data } = await supabase
     .from("entries")
     .update({ paid_at: paid ? new Date().toISOString() : null })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
   if (error) throw error;
+  if ((data?.length ?? 0) === 0) throw new Error("ไม่พบรายการที่จะทำเครื่องหมาย");
   revalidatePath("/", "layout");
 }
 
@@ -114,11 +148,12 @@ export async function clearPin() {
   revalidatePath("/", "layout");
 }
 
-/** Returns whether the PIN matched. Never returns the stored hash. */
+/** Returns whether the PIN matched. Never returns the stored hash. Fails closed: a fetch error is not "no PIN set". */
 export async function verifyPin(pin: string): Promise<boolean> {
   const supabase = await createClient();
   const id = await userId();
-  const { data } = await supabase.from("profiles").select("pin_hash").eq("id", id).single();
+  const { data, error } = await supabase.from("profiles").select("pin_hash").eq("id", id).single();
+  if (error) return false;
   if (!data?.pin_hash) return true;
   return data.pin_hash === (await hashPin(id, pin));
 }
