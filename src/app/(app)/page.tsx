@@ -10,8 +10,15 @@ import { summarise } from "@/lib/money";
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ y?: string; m?: string }> }) {
   const { y, m } = await searchParams;
   const now = new Date();
-  const year = y ? Number(y) : now.getFullYear();
-  const month = m ? Number(m) : now.getMonth();
+  // A stale bookmark or a hand-edited query string can send anything here —
+  // fall back to the current month rather than letting a NaN or an
+  // out-of-range value reach the date-range query below.
+  const yearNum = Number(y);
+  const monthNum = Number(m);
+  const validParams = Number.isInteger(yearNum) && yearNum >= 2000 && yearNum <= 2100
+    && Number.isInteger(monthNum) && monthNum >= 0 && monthNum <= 11;
+  const year = validParams ? yearNum : now.getFullYear();
+  const month = validParams ? monthNum : now.getMonth();
   const key = monthKey(year, month);
   const today = dueDateFor(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -34,7 +41,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <section>
         <h2 className="mb-2 text-sm font-medium text-muted">รายการเดือนนี้</h2>
         {monthEntries.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted">ยังไม่มีรายการในเดือนนี้</p>
+          <p className="py-6 text-center text-sm text-muted">เพิ่มรายการครั้งเดียวด้านล่างเพื่อเริ่มบันทึกเดือนนี้</p>
         ) : (
           <ul className="rounded-2xl border border-line bg-card px-4">
             {monthEntries.map((e) => <EntryRow key={e.id} entry={e} today={today} />)}
