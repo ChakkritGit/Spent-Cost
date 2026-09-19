@@ -22,7 +22,7 @@ export function Nav() {
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`block px-3 py-3 text-center text-sm ${active ? "font-medium text-accent" : "text-muted"}`}
+                className={`block px-2 py-3 text-center text-xs sm:px-3 sm:text-sm ${active ? "font-medium text-accent" : "text-muted"}`}
               >
                 {label}
               </Link>
