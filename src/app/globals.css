@@ -1,23 +1,31 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #fbfbfa;
-  --fg: #18181b;
-  --muted: #71717a;
-  --line: #e4e4e7;
+  --bg: #f2f5f2;
+  --fg: #0f1a14;
+  --muted: #6b7c72;
+  --line: #e4eae5;
   --card: #ffffff;
-  --accent: #0f766e;
-  --accent-soft: #ccfbf1;
+  --accent: #16a34a;
+  --accent-bright: #4ade80;
+  --accent-soft: #dcfce7;
+  --paid: #dcfce7;
+  --paid-fg: #15803d;
+  --due: #fef3c7;
+  --due-fg: #b45309;
+  --overdue: #ffe4e6;
+  --overdue-fg: #be123c;
 }
 
 :root.dark {
-  --bg: #0b0b0c;
+  --bg: #0c110e;
   --fg: #fafafa;
   --muted: #a1a1aa;
-  --line: #27272a;
-  --card: #141416;
-  --accent: #2dd4bf;
-  --accent-soft: #134e4a;
+  --line: #1f2a24;
+  --card: #131a16;
+  --accent: #4ade80;
+  --accent-bright: #4ade80;
+  --accent-soft: #14321f;
 }
 
 @theme inline {
@@ -27,11 +35,19 @@
   --color-line: var(--line);
   --color-card: var(--card);
   --color-accent: var(--accent);
+  --color-accent-bright: var(--accent-bright);
   --color-accent-soft: var(--accent-soft);
+  --color-paid: var(--paid);
+  --color-paid-fg: var(--paid-fg);
+  --color-due: var(--due);
+  --color-due-fg: var(--due-fg);
+  --color-overdue: var(--overdue);
+  --color-overdue-fg: var(--overdue-fg);
 }
 
 body {
   background: var(--bg);
   color: var(--fg);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   font-feature-settings: "tnum";  /* figures line up in columns */
 }

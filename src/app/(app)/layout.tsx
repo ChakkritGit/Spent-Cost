@@ -12,7 +12,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <PinGate hasPin={hasPin}>
       <Nav />
-      <main className="mx-auto max-w-2xl px-4 pb-24 pt-6 sm:pb-10">{children}</main>
+      <div className="lg:pl-60">
+        <main className="mx-auto max-w-2xl px-4 pb-24 pt-6 sm:pb-10">{children}</main>
+      </div>
     </PinGate>
   );
 }
