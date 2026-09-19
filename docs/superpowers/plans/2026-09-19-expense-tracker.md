@@ -851,9 +851,8 @@ export async function getAllDebtEntries(): Promise<Entry[]> {
   return (data ?? []).map(toEntry);
 }
 
-/** The rows "generate next month" would insert. Pure, so it is tested directly. */
+/** The rows a generation would insert, for exactly the month given. Pure, so it is tested directly. */
 export function plannedRowsFor(plans: Plan[], year: number, month: number) {
-  const next = addMonths(year, month, 1);
   return plans
     .filter((p) => p.active)
     .map((p) => ({
@@ -862,13 +861,13 @@ export function plannedRowsFor(plans: Plan[], year: number, month: number) {
       name: p.name,
       amount: p.amount,
       category: p.category,
-      due_date: dueDateFor(next.year, next.month, p.day_of_month),
+      due_date: dueDateFor(year, month, p.day_of_month),
       paid_at: null,
     }));
 }
 ```
 
-Note the signature the test locks in: `plannedRowsFor(plans, year, month)` returns rows for the month **after** `(year, month)` — it is given the month on screen and produces the next one.
+Note the signature the tests lock in: `plannedRowsFor(plans, year, month)` returns rows for **exactly the month it is given**. Stepping to the next month lives in the `generateMonth` action, which is the thing handed the month on screen.
 
 - [ ] **Step 4: Run it and watch it pass**
 
@@ -883,6 +882,7 @@ Expected: PASS, 3 tests.
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { plannedRowsFor, getPlans } from "@/lib/data";
+import { addMonths } from "@/lib/month";
 import { hashPin } from "@/lib/pin";
 
 async function userId(): Promise<string> {
@@ -965,7 +965,8 @@ export async function togglePaid(id: string, paid: boolean) {
  */
 export async function generateMonth(year: number, month: number) {
   const supabase = await createClient();
-  const rows = plannedRowsFor(await getPlans(), year, month);
+  const next = addMonths(year, month, 1);
+  const rows = plannedRowsFor(await getPlans(), next.year, next.month);
   if (rows.length === 0) return { inserted: 0 };
   const { data, error } = await supabase
     .from("entries")
@@ -2501,6 +2502,6 @@ EOF
 ## Notes for the executor
 
 - **Do not add a `where user_id` to any query.** RLS handles it. A query that returns another user's rows is a policy bug, fixed in SQL, not patched in TypeScript.
-- **`plannedRowsFor(plans, year, month)` returns the month *after* the one passed.** It takes the month on screen.
+- **`plannedRowsFor(plans, year, month)` returns rows for the month it is passed, not the month after.** The `+1` lives in `generateMonth`, which receives the month on screen.
 - **The PIN is deliberately weak.** Single-round SHA-256 salted with the user id. Do not "harden" it into a security boundary; the spec says what it is for. If it ever gates more than the screen, the `ponytail:` comment in `src/lib/pin.ts` names the upgrade.
 - **Task 8 needs the `dataviz` skill and Task 5 the `frontend-design` skill** loaded before their code is written.
