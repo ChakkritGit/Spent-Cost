@@ -28,7 +28,7 @@ export default async function SettingsPage() {
             aria-label="PIN"
             className="flex-1 rounded-lg border border-line bg-bg px-3 py-2"
           />
-          <button className="rounded-lg bg-accent px-3 py-3 text-sm font-medium text-white">บันทึก</button>
+          <button className="rounded-lg bg-accent px-3 py-3 text-sm font-medium text-accent-fg">บันทึก</button>
         </form>
         {hasPin && <ClearPinButton />}
       </section>

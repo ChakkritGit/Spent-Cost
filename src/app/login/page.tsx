@@ -35,7 +35,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={status === "sending"}
-          className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+          className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-fg disabled:opacity-50"
         >
           {status === "sending" ? "กำลังส่ง…" : "ส่งลิงก์เข้าสู่ระบบ"}
         </button>

@@ -49,7 +49,7 @@ export function PinGate({ hasPin, children }: { hasPin: boolean; children: React
           aria-label="PIN"
           aria-invalid={wrong}
         />
-        <button type="submit" className="rounded-lg bg-accent px-3 py-3 text-sm font-medium text-white">
+        <button type="submit" className="rounded-lg bg-accent px-3 py-3 text-sm font-medium text-accent-fg">
           ปลดล็อก
         </button>
       </form>

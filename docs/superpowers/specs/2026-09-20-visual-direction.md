@@ -27,7 +27,8 @@ navigation stays on phones instead of becoming a collapsed sidebar.
 --fg            #0f1a14   deep green-black, not a tinted near-black
 --muted         #6b7c72   secondary text, axis labels
 --line          #e4eae5   hairline borders
---accent        #16a34a   primary action, active nav, progress fill
+--accent        #15803d   primary action, active nav, progress fill
+--accent-fg     #ffffff   text/icons on a filled accent surface
 --accent-bright #4ade80   the light end of the bar gradient only
 --accent-soft   #dcfce7   pill grounds, chart tints, progress track
 ```
@@ -40,9 +41,14 @@ due       bg #fef3c7  text #b45309   ค้างจ่าย
 overdue   bg #ffe4e6  text #be123c   เกินกำหนด
 ```
 
-`--accent` is green 600 rather than the reference's brighter green so that
-white text on a filled button and green text on white both clear 4.5:1. The
-bright green survives as the gradient's top end, where it carries no text.
+`--accent` is green 700 rather than the reference's brighter green because
+white text on green 600 measures 3.30:1 — under the 4.5:1 floor for
+body-sized text. Green 700 clears it at 5.02:1. (Green 600 text on white
+clears 4.5:1 on its own, but that pairing isn't what a filled button needs:
+the button needs white *on* the fill, not green text sitting on the page.)
+The bright green survives as the gradient's top end, where it carries no
+text, and as the dark theme's accent, where it sits behind dark text
+(`--accent-fg: #052e16`) rather than white.
 
 ## Type
 

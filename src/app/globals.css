@@ -6,7 +6,8 @@
   --muted: #6b7c72;
   --line: #e4eae5;
   --card: #ffffff;
-  --accent: #16a34a;
+  --accent: #15803d;
+  --accent-fg: #ffffff;
   --accent-bright: #4ade80;
   --accent-soft: #dcfce7;
   --paid: #dcfce7;
@@ -24,8 +25,15 @@
   --line: #1f2a24;
   --card: #131a16;
   --accent: #4ade80;
-  --accent-bright: #4ade80;
+  --accent-fg: #052e16;
+  --accent-bright: #86efac;
   --accent-soft: #14321f;
+  --paid: #14321f;
+  --paid-fg: #86efac;
+  --due: #3a2e10;
+  --due-fg: #fcd34d;
+  --overdue: #3f1620;
+  --overdue-fg: #fda4af;
 }
 
 @theme inline {
@@ -35,6 +43,7 @@
   --color-line: var(--line);
   --color-card: var(--card);
   --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
   --color-accent-bright: var(--accent-bright);
   --color-accent-soft: var(--accent-soft);
   --color-paid: var(--paid);
