@@ -18,7 +18,7 @@ export default async function PlansPage() {
 
       <section>
         <h2 className="mb-2 text-sm font-medium text-muted">หนี้</h2>
-        {debts.length === 0 && <p className="text-sm text-muted">ยังไม่มีหนี้</p>}
+        {debts.length === 0 && <p className="text-sm text-muted">เพิ่มหนี้ด้านล่างเพื่อเริ่มติดตามความคืบหน้า</p>}
         <ul className="flex flex-col gap-3">
           {debts.map((plan) => {
             const { paid, total, ratio } = debtProgress(plan, entries);
@@ -51,16 +51,21 @@ export default async function PlansPage() {
 
       <section>
         <h2 className="mb-2 text-sm font-medium text-muted">รายการประจำเดือน</h2>
-        {subs.length === 0 && <p className="text-sm text-muted">ยังไม่มีรายการ</p>}
+        {subs.length === 0 && <p className="text-sm text-muted">เพิ่มรายการประจำด้านล่างเพื่อเริ่มบันทึก</p>}
         <ul className="flex flex-col gap-2">
           {subs.map((plan) => (
-            <li key={plan.id} className="flex flex-wrap items-center gap-x-3 rounded-2xl border border-line bg-card p-4">
-              <div className="min-w-0 flex-1">
-                <p className={`truncate font-medium ${plan.active ? "" : "text-muted line-through"}`}>{plan.name}</p>
-                <p className="text-xs text-muted">ทุกวันที่ {plan.day_of_month} · {plan.category}</p>
+            <li key={plan.id} className="rounded-2xl border border-line bg-card p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className={`truncate font-medium ${plan.active ? "" : "text-muted line-through"}`}>{plan.name}</p>
+                  <p className="text-xs text-muted">ทุกวันที่ {plan.day_of_month} · {plan.category}</p>
+                </div>
+                <p className="shrink-0 text-sm tabular-nums">{baht(plan.amount)}</p>
               </div>
-              <p className="shrink-0 text-sm tabular-nums">{baht(plan.amount)}</p>
-              <PlanDeleteButton id={plan.id} name={plan.name} paidCount={paidCount(plan.id)} />
+              <div className="mt-1 flex flex-wrap items-center gap-1">
+                <ActiveToggle plan={plan} />
+                <PlanDeleteButton id={plan.id} name={plan.name} paidCount={paidCount(plan.id)} />
+              </div>
             </li>
           ))}
         </ul>
@@ -75,12 +80,15 @@ export default async function PlansPage() {
 }
 
 /**
- * Deactivating, not deleting, is the normal way to close a finished debt —
+ * Deactivating, not deleting, is the normal way to close a finished plan —
  * `active = false` is what plannedRowsFor already skips, and it keeps every
- * paid entry attributed. This resubmits the plan's own fields through
- * savePlan with `active` flipped, so no new server action is needed for it.
+ * paid entry attributed. Offered for debts and subscriptions alike: the
+ * delete guard beside it is symmetric across both, so the easy non-
+ * destructive path should be too. This resubmits the plan's own fields
+ * through savePlan with `active` flipped, so no new server action is needed.
  */
 function ActiveToggle({ plan }: { plan: Plan }) {
+  const label = plan.active ? "ปิดใช้งาน" : "เปิดใช้งาน";
   return (
     <form action={savePlan}>
       <input type="hidden" name="id" value={plan.id} />
@@ -90,8 +98,11 @@ function ActiveToggle({ plan }: { plan: Plan }) {
       <input type="hidden" name="day_of_month" value={plan.day_of_month} />
       {plan.total_amount !== null && <input type="hidden" name="total_amount" value={plan.total_amount} />}
       {!plan.active && <input type="hidden" name="active" value="on" />}
-      <button className="inline-flex min-h-11 items-center rounded-lg px-3 text-xs text-muted underline">
-        {plan.active ? "ปิดใช้งาน" : "เปิดใช้งาน"}
+      <button
+        aria-label={`${label} ${plan.name}`}
+        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-3 text-xs text-muted underline"
+      >
+        {label}
       </button>
     </form>
   );
