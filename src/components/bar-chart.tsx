@@ -7,6 +7,25 @@ const labelFor = (key: string) => {
 };
 
 /**
+ * Bar runway in px, not a percentage. The row is `h-32` (128px) and each
+ * column also holds a `gap-1` (4px) and the month label (15px at
+ * `text-[10px]`, measured against the real compiled CSS) below the bar —
+ * 128 - 4 - 15 = 109px is what's actually left for the bar.
+ *
+ * A percentage height here breaks two separate ways, not one: it needs a
+ * *definite* height on its containing block (the earlier bug — `items-end`
+ * left the column auto-height, so every bar rendered at 0px), and even with
+ * that fixed, the bar is still a shrinkable flex item — once
+ * bar + gap + label would exceed the row height, flexbox quietly compresses
+ * the bar to fit instead of letting it overflow, so every month from ~85%
+ * of max upward renders at the same height and the chart stops showing
+ * which month was actually bigger. Pixels against a fixed track need no
+ * definite parent, and `shrink-0` (below) closes the second hole, so the
+ * whole class of bug goes away instead of moving somewhere else.
+ */
+const TRACK = 109;
+
+/**
  * CSS bars, not SVG — a bar is a rectangle and flexbox already stacks them.
  * No hover tooltip beyond the native `title`: six static bars in a
  * library-free, phone-first app don't earn a custom crosshair/tooltip layer.
@@ -22,8 +41,8 @@ export function BarChart({ data }: { data: { key: string; amount: number }[] }) 
       {data.map(({ key, amount }) => (
         <div key={key} aria-hidden className="flex flex-1 flex-col items-center justify-end gap-1">
           <div
-            className="w-full max-w-6 rounded-t bg-linear-to-t from-accent to-accent-bright"
-            style={{ height: `${Math.max((amount / max) * 100, 2)}%` }}
+            className="w-full max-w-6 shrink-0 rounded-t bg-linear-to-t from-accent to-accent-bright"
+            style={{ height: `${Math.max(Math.round((amount / max) * TRACK), 2)}px` }}
             title={`${labelFor(key)}: ${baht(amount)}`}
           />
           <span className="text-[10px] text-muted">{labelFor(key)}</span>
