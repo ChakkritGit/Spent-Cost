@@ -35,7 +35,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
         {LEGEND.map(({ swatch, label }) => (
           <li key={label} className="flex items-center gap-1.5">
-            <span aria-hidden className={`size-2 shrink-0 ${swatch}`} />
+            {/* size-1.5 matches the grid dots — same shape vocabulary, same scale. */}
+            <span aria-hidden className={`size-1.5 shrink-0 ${swatch}`} />
             {label}
           </li>
         ))}

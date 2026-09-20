@@ -4,12 +4,19 @@ import type { Entry } from "@/lib/types";
 
 const WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 
+// Full names for the per-cell group label below — the header row that
+// spells these out is `aria-hidden` (see CalendarGrid), so each cell names
+// its own weekday instead of relying on column position.
+const WEEKDAY_FULL = ["วันอาทิตย์", "วันจันทร์", "วันอังคาร", "วันพุธ", "วันพฤหัสบดี", "วันศุกร์", "วันเสาร์"];
+
 const STATE_LABEL = { paid: "จ่ายแล้ว", due: "ค้างจ่าย", overdue: "เกินกำหนด" } as const;
 
 /** Same paid/overdue/due rule as the dashboard (entry-row.tsx) — kept in one
  * place would be nicer, but it's a one-line ternary, not worth a shared
- * import for. */
-function stateOf(e: Entry, today: string): keyof typeof STATE_LABEL {
+ * import for. Exported so the exact-today boundary (due today must read
+ * "due", not "overdue") is covered directly rather than only through the
+ * rendered grid. */
+export function stateOf(e: Entry, today: string): keyof typeof STATE_LABEL {
   if (e.paid_at !== null) return "paid";
   return e.due_date < today ? "overdue" : "due";
 }
@@ -71,6 +78,7 @@ export function CalendarGrid({
   // the 3:1 non-text rule, which #ea580c/#fb923c clear against both card
   // colours (see task-5c-report.md's contrast table).
   const todayDay = today.startsWith(`${monthKey(year, month)}-`) ? Number(today.slice(8, 10)) : null;
+  const cells = calendarCells(year, month);
 
   return (
     <div className="overflow-hidden rounded-3xl bg-card p-3 shadow-card">
@@ -80,30 +88,47 @@ export function CalendarGrid({
         ))}
       </div>
       <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl bg-line">
-        {calendarCells(year, month).map((day, i) => {
+        {cells.map((day, i) => {
           const dayEntries = day ? byDay.get(day) ?? [] : [];
+          // i % 7: cells are laid out in whole Sunday-first weeks (see
+          // calendarCells), so position within a row is the weekday index.
+          const weekday = WEEKDAY_FULL[i % 7];
           return (
             <div key={i} className="min-h-14 bg-card p-1">
               {day && (
-                <span
-                  className={`inline-flex size-5 items-center justify-center text-xs tabular-nums text-muted ${day === todayDay ? "rounded-full border-2 border-action font-semibold text-fg" : ""}`}
+                // `role="group"` ties the number to its dots as one unit —
+                // the weekday header row above is `aria-hidden`, so without
+                // this a screen reader hits a bare number followed by
+                // disconnected dot announcements with no way to tell which
+                // day they belong to. The label states day + weekday + a
+                // count (what's due); it deliberately does not repeat each
+                // dot's own name/amount/state — those stay on the dots
+                // below via `role="img"` so nothing is announced twice.
+                <div
+                  role="group"
+                  aria-label={`${weekday}ที่ ${day} ${dayEntries.length ? `มี ${dayEntries.length} รายการ` : "ไม่มีรายการ"}`}
+                  className="contents"
                 >
-                  {day}
-                </span>
+                  <span
+                    className={`inline-flex size-5 items-center justify-center text-xs tabular-nums text-muted ${day === todayDay ? "rounded-full border-2 border-action font-semibold text-fg" : ""}`}
+                  >
+                    {day}
+                  </span>
+                  <div className="mt-0.5 flex flex-wrap gap-0.5">
+                    {dayEntries.map((e) => {
+                      const state = stateOf(e, today);
+                      return (
+                        <span
+                          key={e.id}
+                          role="img"
+                          aria-label={`${e.name} ${baht(e.amount)} ${STATE_LABEL[state]}`}
+                          className={`size-1.5 shrink-0 ${DOT_CLASS[state]}`}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
               )}
-              <div className="mt-0.5 flex flex-wrap gap-0.5">
-                {dayEntries.map((e) => {
-                  const state = stateOf(e, today);
-                  return (
-                    <span
-                      key={e.id}
-                      role="img"
-                      aria-label={`${e.name} ${baht(e.amount)} ${STATE_LABEL[state]}`}
-                      className={`size-1.5 shrink-0 ${DOT_CLASS[state]}`}
-                    />
-                  );
-                })}
-              </div>
             </div>
           );
         })}
