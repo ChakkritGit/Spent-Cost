@@ -1,11 +1,13 @@
+import { BarChart } from "@/components/bar-chart";
+import { DonutChart } from "@/components/donut-chart";
 import { EntryForm } from "@/components/entry-form";
 import { EntryRow } from "@/components/entry-row";
 import { GenerateMonthButton } from "@/components/generate-month-button";
 import { MonthSwitcher } from "@/components/month-switcher";
 import { SummaryCards } from "@/components/summary-cards";
 import { getAllDebtEntries, getEntriesForMonths, getPlans } from "@/lib/data";
-import { daysInMonth, dueDateFor, monthKey } from "@/lib/month";
-import { summarise } from "@/lib/money";
+import { addMonths, daysInMonth, dueDateFor, monthKey } from "@/lib/month";
+import { byCategory, monthlyTotals, summarise } from "@/lib/money";
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ y?: string; m?: string }> }) {
   const { y, m } = await searchParams;
@@ -34,10 +36,29 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const summary = summarise(plans, [...byId.values()], key);
   const monthEntries = windowEntries.filter((e) => e.due_date.startsWith(key));
 
+  const chartKeys = Array.from({ length: 6 }, (_, i) => {
+    const at = addMonths(year, month, i - 5);
+    return monthKey(at.year, at.month);
+  });
+  const bars = monthlyTotals(windowEntries, chartKeys);
+  const categories = byCategory(monthEntries);
+
   return (
     <div className="flex flex-col gap-6">
       <MonthSwitcher year={year} month={month} />
       <SummaryCards {...summary} />
+      <section>
+        <h2 className="mb-2 text-sm font-medium text-muted">6 เดือนย้อนหลัง</h2>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <BarChart data={bars} />
+        </div>
+      </section>
+      <section>
+        <h2 className="mb-2 text-sm font-medium text-muted">แยกตามหมวด</h2>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <DonutChart data={categories} />
+        </div>
+      </section>
       <section>
         <h2 className="mb-2 text-sm font-medium text-muted">รายการเดือนนี้</h2>
         {monthEntries.length === 0 ? (
