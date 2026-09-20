@@ -37,7 +37,7 @@ export function PinGate({ hasPin, children }: { hasPin: boolean; children: React
   return (
     <div className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 px-6">
       <h1 className="text-center text-lg font-medium">ใส่ PIN</h1>
-      <form onSubmit={submit} className="flex flex-col gap-3">
+      <form onSubmit={submit} className="flex flex-col gap-4">
         <input
           type="password"
           inputMode="numeric"
@@ -45,15 +45,15 @@ export function PinGate({ hasPin, children }: { hasPin: boolean; children: React
           pattern="[0-9]*"
           value={pin}
           onChange={(e) => { setPin(e.target.value); setWrong(false); }}
-          className="rounded-lg border border-line bg-card px-3 py-3 text-center text-2xl tracking-[0.5em]"
+          className="rounded-btn border border-line bg-card px-3 py-3 text-center text-2xl tracking-[0.5em]"
           aria-label="PIN"
           aria-invalid={wrong}
         />
-        <button type="submit" className="rounded-lg bg-accent px-3 py-3 text-sm font-medium text-accent-fg">
+        <button type="submit" className="rounded-btn bg-accent px-3 py-3 text-sm font-medium text-accent-fg">
           ปลดล็อก
         </button>
       </form>
-      {wrong && <p role="alert" className="text-center text-sm text-red-600">PIN ไม่ถูกต้อง</p>}
+      {wrong && <p role="alert" className="text-center text-sm text-overdue-fg">PIN ไม่ถูกต้อง</p>}
     </div>
   );
 }

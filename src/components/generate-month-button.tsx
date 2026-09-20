@@ -15,7 +15,7 @@ export function GenerateMonthButton({ year, month }: { year: number; month: numb
           setResult(inserted === 0 ? "สร้างไว้แล้ว ไม่มีรายการใหม่" : `เพิ่ม ${inserted} รายการ`);
         })}
         disabled={pending}
-        className="rounded-lg border border-line bg-card px-4 py-3 text-sm font-medium disabled:opacity-50"
+        className="rounded-btn bg-card px-4 py-3 text-sm font-medium shadow-card disabled:opacity-50"
       >
         {pending ? "กำลังสร้าง…" : "สร้างรายการเดือนหน้า"}
       </button>

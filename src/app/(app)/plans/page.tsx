@@ -17,9 +17,9 @@ export default async function PlansPage() {
       <h1 className="text-xl font-semibold tracking-tight">รายการประจำ</h1>
 
       <section>
-        <h2 className="mb-2 text-sm font-medium text-muted">หนี้</h2>
+        <h2 className="mb-2 text-lg font-semibold">หนี้</h2>
         {debts.length === 0 && <p className="text-sm text-muted">เพิ่มหนี้ด้านล่างเพื่อเริ่มติดตามความคืบหน้า</p>}
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-4">
           {debts.map((plan) => {
             const { paid, total, ratio } = debtProgress(plan, entries);
             // The bar (ProgressBar) clamps at full; this percentage does not —
@@ -30,7 +30,7 @@ export default async function PlansPage() {
             const percent = Math.round(ratio * 100);
             const remaining = Math.max(0, Math.round((total - paid) * 100) / 100);
             return (
-              <li key={plan.id} className="rounded-2xl border border-line bg-card p-4">
+              <li key={plan.id} className="rounded-3xl bg-card p-5 shadow-card">
                 <div className="flex items-baseline justify-between gap-3">
                   <p className={`truncate font-medium ${plan.active ? "" : "text-muted line-through"}`}>{plan.name}</p>
                   <p className="shrink-0 text-sm tabular-nums text-muted">{percent}%</p>
@@ -50,11 +50,11 @@ export default async function PlansPage() {
       </section>
 
       <section>
-        <h2 className="mb-2 text-sm font-medium text-muted">รายการประจำเดือน</h2>
+        <h2 className="mb-2 text-lg font-semibold">รายการประจำเดือน</h2>
         {subs.length === 0 && <p className="text-sm text-muted">เพิ่มรายการประจำด้านล่างเพื่อเริ่มบันทึก</p>}
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-4">
           {subs.map((plan) => (
-            <li key={plan.id} className="rounded-2xl border border-line bg-card p-4">
+            <li key={plan.id} className="rounded-3xl bg-card p-5 shadow-card">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <p className={`truncate font-medium ${plan.active ? "" : "text-muted line-through"}`}>{plan.name}</p>
@@ -72,7 +72,7 @@ export default async function PlansPage() {
       </section>
 
       <section>
-        <h2 className="mb-2 text-sm font-medium text-muted">เพิ่มรายการ</h2>
+        <h2 className="mb-2 text-lg font-semibold">เพิ่มรายการ</h2>
         <PlanForm />
       </section>
     </div>
@@ -100,7 +100,7 @@ function ActiveToggle({ plan }: { plan: Plan }) {
       {!plan.active && <input type="hidden" name="active" value="on" />}
       <button
         aria-label={`${label} ${plan.name}`}
-        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-3 text-xs text-muted underline"
+        className="rounded-btn inline-flex min-h-11 min-w-11 items-center justify-center px-3 text-xs text-muted underline"
       >
         {label}
       </button>

@@ -31,7 +31,7 @@ export function ClearPinButton() {
       onClick={handleClick}
       onBlur={disarm}
       aria-live="polite"
-      className="mt-2 rounded-lg px-3 py-3 text-sm text-muted underline"
+      className="rounded-btn mt-2 px-3 py-3 text-sm text-muted underline"
     >
       {armed ? "แตะอีกครั้งเพื่อยืนยัน" : "ปิดการใช้ PIN"}
     </button>

@@ -17,7 +17,7 @@ export function MonthSwitcher({ year, month }: { year: number; month: number }) 
       >
         ←
       </Link>
-      <h1 className="text-lg font-medium tracking-tight">{label.format(new Date(year, month, 1))}</h1>
+      <h1 className="text-lg font-semibold tracking-tight">{label.format(new Date(year, month, 1))}</h1>
       <Link
         href={href(next)}
         aria-label="เดือนถัดไป"

@@ -1,5 +1,5 @@
 import { baht } from "@/lib/money";
-import { daysInMonth } from "@/lib/month";
+import { daysInMonth, monthKey } from "@/lib/month";
 import type { Entry } from "@/lib/types";
 
 const WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
@@ -63,19 +63,34 @@ export function CalendarGrid({
     byDay.set(day, [...(byDay.get(day) ?? []), e]);
   }
 
+  // "the selected day" (spec) is today's cell — the calendar has no click-to-
+  // select state (that would be new interaction, out of scope here), so the
+  // one day that's already meaningfully "selected" without inventing
+  // behaviour is today. Orange never sits behind the digit: it's a ring
+  // around it, not a fill, so the 4.5:1 text rule never applies here — only
+  // the 3:1 non-text rule, which #ea580c/#fb923c clear against both card
+  // colours (see task-5c-report.md's contrast table).
+  const todayDay = today.startsWith(`${monthKey(year, month)}-`) ? Number(today.slice(8, 10)) : null;
+
   return (
-    <div>
-      <div className="grid grid-cols-7 text-center text-xs text-muted" aria-hidden>
+    <div className="overflow-hidden rounded-3xl bg-card p-3 shadow-card">
+      <div className="grid grid-cols-7 text-center text-[13px] text-muted" aria-hidden>
         {WEEKDAYS.map((d) => (
           <div key={d} className="py-1">{d}</div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-line bg-line">
+      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl bg-line">
         {calendarCells(year, month).map((day, i) => {
           const dayEntries = day ? byDay.get(day) ?? [] : [];
           return (
             <div key={i} className="min-h-14 bg-card p-1">
-              {day && <span className="text-xs tabular-nums text-muted">{day}</span>}
+              {day && (
+                <span
+                  className={`inline-flex size-5 items-center justify-center text-xs tabular-nums text-muted ${day === todayDay ? "rounded-full border-2 border-action font-semibold text-fg" : ""}`}
+                >
+                  {day}
+                </span>
+              )}
               <div className="mt-0.5 flex flex-wrap gap-0.5">
                 {dayEntries.map((e) => {
                   const state = stateOf(e, today);

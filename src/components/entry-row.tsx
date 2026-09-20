@@ -59,13 +59,13 @@ export function EntryRow({ entry, today }: { entry: Entry; today: string }) {
           <span className={`size-5 rounded-full border-2 transition-colors ${paid ? "border-accent bg-accent" : "border-line"}`} />
         </button>
         <div className="min-w-0 flex-1 py-3">
-          <p className={`truncate text-sm ${paid ? "text-muted line-through" : ""}`}>{entry.name}</p>
+          <p className={`truncate text-[15px] ${paid ? "text-muted line-through" : ""}`}>{entry.name}</p>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="text-xs text-muted">วันที่ {day} · {entry.category}</p>
+            <p className="text-[13px] text-muted">วันที่ {day} · {entry.category}</p>
             <StatusPill state={state} />
           </div>
         </div>
-        <p className="shrink-0 text-sm font-medium tabular-nums">{baht(entry.amount)}</p>
+        <p className="shrink-0 text-[15px] font-medium tabular-nums">{baht(entry.amount)}</p>
         <button
           onClick={remove}
           disabled={pending}

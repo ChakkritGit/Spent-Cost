@@ -6,9 +6,9 @@ import type { Plan } from "@/lib/types";
 // screen reader has a real name for each one once the placeholder scrolls
 // away on focus, matching entry-form.tsx's convention.
 export function PlanForm({ plan }: { plan?: Plan }) {
-  const field = "w-full rounded-lg border border-line bg-bg px-3 py-3 text-sm";
+  const field = "rounded-btn w-full border border-line bg-bg px-3 py-3 text-[15px]";
   return (
-    <form action={savePlan} className="flex flex-col gap-3 rounded-2xl border border-line bg-card p-4">
+    <form action={savePlan} className="flex flex-col gap-4 rounded-3xl bg-card p-5 shadow-card">
       {plan && <input type="hidden" name="id" value={plan.id} />}
       <input
         name="name"
@@ -60,11 +60,11 @@ export function PlanForm({ plan }: { plan?: Plan }) {
         aria-label="ยอดหนี้รวม เว้นว่างถ้าเป็นรายการประจำ"
         className={field}
       />
-      <label className="flex min-h-11 items-center gap-2 text-sm text-muted">
+      <label className="flex min-h-11 items-center gap-2 text-[15px] text-muted">
         <input type="checkbox" name="active" defaultChecked={plan?.active ?? true} className="size-4" />
         ใช้งานอยู่
       </label>
-      <button className="rounded-lg bg-accent px-3 py-3 text-sm font-medium text-accent-fg">
+      <button className="rounded-btn bg-accent px-3 py-3 text-[15px] font-medium text-accent-fg">
         {plan ? "บันทึก" : "เพิ่มรายการ"}
       </button>
     </form>

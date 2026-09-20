@@ -6,7 +6,7 @@ import "./globals.css";
 
 const sans = IBM_Plex_Sans_Thai({
   subsets: ["thai", "latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
   display: "swap",
 });
@@ -22,8 +22,8 @@ export const metadata: Metadata = {
 // background_color/theme_color (src/app/manifest.ts) in sync if this moves.
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f2f5f2" },
-    { media: "(prefers-color-scheme: dark)", color: "#0c110e" },
+    { media: "(prefers-color-scheme: light)", color: "#f1f2f4" },
+    { media: "(prefers-color-scheme: dark)", color: "#15161b" },
   ],
 };
 

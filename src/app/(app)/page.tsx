@@ -48,29 +48,29 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <MonthSwitcher year={year} month={month} />
       <SummaryCards {...summary} />
       <section>
-        <h2 className="mb-2 text-sm font-medium text-muted">6 เดือนย้อนหลัง</h2>
-        <div className="rounded-2xl border border-line bg-card p-4">
+        <h2 className="mb-2 text-lg font-semibold">6 เดือนย้อนหลัง</h2>
+        <div className="rounded-3xl bg-card p-5 shadow-card">
           <BarChart data={bars} />
         </div>
       </section>
       <section>
-        <h2 className="mb-2 text-sm font-medium text-muted">แยกตามหมวด</h2>
-        <div className="rounded-2xl border border-line bg-card p-4">
+        <h2 className="mb-2 text-lg font-semibold">แยกตามหมวด</h2>
+        <div className="rounded-3xl bg-card p-5 shadow-card">
           <DonutChart data={categories} />
         </div>
       </section>
       <section>
-        <h2 className="mb-2 text-sm font-medium text-muted">รายการเดือนนี้</h2>
+        <h2 className="mb-2 text-lg font-semibold">รายการเดือนนี้</h2>
         {monthEntries.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted">เพิ่มรายการครั้งเดียวด้านล่างเพื่อเริ่มบันทึกเดือนนี้</p>
         ) : (
-          <ul className="rounded-2xl border border-line bg-card px-4">
+          <ul className="rounded-3xl bg-card px-5 shadow-card">
             {monthEntries.map((e) => <EntryRow key={e.id} entry={e} today={today} />)}
           </ul>
         )}
       </section>
-      <section>
-        <h2 className="mb-2 text-sm font-medium text-muted">เพิ่มรายการครั้งเดียว</h2>
+      <section id="add-entry">
+        <h2 className="mb-2 text-lg font-semibold">เพิ่มรายการครั้งเดียว</h2>
         <EntryForm defaultDate={dueDateFor(year, month, Math.min(now.getDate(), daysInMonth(year, month)))} />
       </section>
       <GenerateMonthButton year={year} month={month} />

@@ -12,7 +12,7 @@ export default async function SettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-semibold tracking-tight">ตั้งค่า</h1>
-      <section className="rounded-xl border border-line bg-card p-4">
+      <section className="rounded-3xl bg-card p-5 shadow-card">
         <h2 className="font-medium">PIN</h2>
         <p className="mt-1 text-sm text-muted">
           บังหน้าจอตอนเปิดแอพ ไม่ใช่ระบบความปลอดภัย — ข้อมูลถูกกันด้วยบัญชีและ RLS อยู่แล้ว
@@ -26,9 +26,9 @@ export default async function SettingsPage() {
             required
             placeholder={hasPin ? "เปลี่ยน PIN" : "ตั้ง PIN 4–8 หลัก"}
             aria-label="PIN"
-            className="flex-1 rounded-lg border border-line bg-bg px-3 py-2"
+            className="rounded-btn flex-1 border border-line bg-bg px-3 py-3"
           />
-          <button className="rounded-lg bg-accent px-3 py-3 text-sm font-medium text-accent-fg">บันทึก</button>
+          <button className="rounded-btn bg-accent px-3 py-3 text-sm font-medium text-accent-fg">บันทึก</button>
         </form>
         {hasPin && <ClearPinButton />}
       </section>

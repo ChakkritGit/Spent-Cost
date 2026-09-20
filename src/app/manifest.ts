@@ -11,8 +11,8 @@ export default function manifest(): MetadataRoute.Manifest {
     // here). background_color mirrors --bg light; theme_color mirrors --accent
     // light. Keep in sync with src/app/globals.css and the viewport.themeColor
     // pair in src/app/layout.tsx if the palette moves again.
-    background_color: "#f2f5f2",
-    theme_color: "#15803d",
+    background_color: "#f1f2f4",
+    theme_color: "#6d28d9",
     lang: "th",
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png" },

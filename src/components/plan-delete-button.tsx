@@ -57,7 +57,7 @@ export function PlanDeleteButton({ id, name, paidCount }: { id: string; name: st
         disabled={pending}
         aria-label={armed ? `ยืนยันการลบ ${name}` : `ลบ ${name}`}
         aria-live="polite"
-        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-4 text-xs text-muted underline disabled:opacity-50"
+        className="rounded-btn inline-flex min-h-11 min-w-11 items-center justify-center px-4 text-xs text-muted underline disabled:opacity-50"
       >
         {armed ? "แตะอีกครั้งเพื่อยืนยัน" : "ลบ"}
       </button>

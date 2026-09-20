@@ -23,19 +23,19 @@ export default function LoginPage() {
         <h1 className="text-2xl font-semibold tracking-tight">รายจ่าย</h1>
         <p className="mt-1 text-sm text-muted">เข้าสู่ระบบด้วยอีเมล</p>
       </div>
-      <form onSubmit={send} className="flex flex-col gap-3">
+      <form onSubmit={send} className="flex flex-col gap-4">
         <input
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
-          className="rounded-lg border border-line bg-card px-3 py-2 text-base"
+          className="rounded-btn border border-line bg-card px-3 py-3 text-base"
         />
         <button
           type="submit"
           disabled={status === "sending"}
-          className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-fg disabled:opacity-50"
+          className="rounded-btn bg-accent px-3 py-3 text-sm font-medium text-accent-fg disabled:opacity-50"
         >
           {status === "sending" ? "กำลังส่ง…" : "ส่งลิงก์เข้าสู่ระบบ"}
         </button>
