@@ -7,6 +7,8 @@ export type Plan = {
   category: string;
   day_of_month: number;
   total_amount: number | null;
+  /** Repaid before the app existed — the opening balance of a debt's progress. */
+  paid_before: number;
   active: boolean;
   created_at: string;
 };

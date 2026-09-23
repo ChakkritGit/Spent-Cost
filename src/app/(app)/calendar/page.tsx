@@ -1,46 +1,106 @@
-import { CalendarGrid } from "@/components/calendar-grid";
-import { MonthSwitcher } from "@/components/month-switcher";
-import { getEntries } from "@/lib/data";
-import { daysInMonth, dueDateFor, monthKey } from "@/lib/month";
+import Link from "next/link";
+import { EntryList } from "@/components/entry-list";
+import { MonthSwitcher, PageHeader, monthTitle } from "@/components/page-header";
+import { calendarCells, stateOf, type EntryState } from "@/lib/calendar";
+import { getCategories, getEntries } from "@/lib/data";
+import { daysInMonth, dueDateFor, monthFrom, monthKey, todayIso } from "@/lib/month";
+import type { Entry } from "@/lib/types";
 
-const LEGEND = [
-  { swatch: "rounded-full bg-paid-fg", label: "จ่ายแล้ว" },
-  { swatch: "rounded-full border border-due-fg", label: "ค้างจ่าย" },
-  { swatch: "rounded-none border border-overdue-fg", label: "เกินกำหนด" },
-] as const;
+const WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+const dayLong = new Intl.DateTimeFormat("th-TH", { weekday: "long", day: "numeric", month: "long" });
 
-export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ y?: string; m?: string }> }) {
-  const { y, m } = await searchParams;
-  const now = new Date();
-  // Same guard as the dashboard (page.tsx): a stale bookmark or a hand-edited
-  // query string can send anything here, so fall back to the current month
-  // rather than let a NaN or out-of-range value reach the date-range query.
-  const yearNum = Number(y);
-  const monthNum = Number(m);
-  const validParams = Number.isInteger(yearNum) && yearNum >= 2000 && yearNum <= 2100
-    && Number.isInteger(monthNum) && monthNum >= 0 && monthNum <= 11;
-  const year = validParams ? yearNum : now.getFullYear();
-  const month = validParams ? monthNum : now.getMonth();
+// Shape carries the state as well as colour: filled, outlined, red.
+const MARK: Record<EntryState, string> = {
+  paid: "bg-brand border-brand",
+  due: "border-ink",
+  overdue: "bg-danger border-danger",
+};
+const STATE_WORD: Record<EntryState, string> = { paid: "จ่ายแล้ว", due: "รอจ่าย", overdue: "เกินกำหนด" };
+
+export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ y?: string; m?: string; d?: string }> }) {
+  const { y, m, d } = await searchParams;
+  const today = todayIso();
+  const { year, month } = monthFrom(y, m, today);
   const key = monthKey(year, month);
-  // Computed once, server-side, and passed down — a `new Date()` evaluated
-  // again on the client risks a hydration mismatch (see entry-row.tsx).
-  const today = dueDateFor(now.getFullYear(), now.getMonth(), now.getDate());
+  const last = daysInMonth(year, month);
 
-  const entries = await getEntries(`${key}-01`, `${key}-${String(daysInMonth(year, month)).padStart(2, "0")}`);
+  const [entries, categories] = await Promise.all([
+    getEntries(`${key}-01`, dueDateFor(year, month, 31)),
+    getCategories(),
+  ]);
+
+  const byDay = new Map<number, Entry[]>();
+  for (const e of entries) {
+    const day = Number(e.due_date.slice(8, 10));
+    byDay.set(day, [...(byDay.get(day) ?? []), e]);
+  }
+
+  const todayDay = today.startsWith(`${key}-`) ? Number(today.slice(8, 10)) : null;
+  const asked = Number(d);
+  const picked = Number.isInteger(asked) && asked >= 1 && asked <= last ? asked : todayDay;
+  const pickedEntries = picked ? byDay.get(picked) ?? [] : [];
 
   return (
-    <div className="flex flex-col gap-4">
-      <MonthSwitcher year={year} month={month} />
-      <CalendarGrid year={year} month={month} entries={entries} today={today} />
-      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-        {LEGEND.map(({ swatch, label }) => (
-          <li key={label} className="flex items-center gap-1.5">
-            {/* size-1.5 matches the grid dots — same shape vocabulary, same scale. */}
-            <span aria-hidden className={`size-1.5 shrink-0 ${swatch}`} />
-            {label}
+    <>
+      <PageHeader title={monthTitle("ปฏิทิน", year, month)} aside={<MonthSwitcher year={year} month={month} path="/calendar" />} />
+
+      <div aria-hidden className="grid grid-cols-7 border-b border-ink bg-surface">
+        {WEEKDAYS.map((w) => (
+          <span key={w} className="py-2 text-center font-mono text-[11px] text-muted">{w}</span>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 bg-surface">
+        {calendarCells(year, month).map((day, i) => {
+          if (day === null) return <span key={`blank-${i}`} className="h-16 border-b border-e border-hair bg-paper" />;
+          const list = byDay.get(day) ?? [];
+          const states = [...new Set(list.map((e) => stateOf(e, today)))];
+          const isToday = day === todayDay;
+          const isPicked = day === picked;
+          return (
+            <Link
+              key={day}
+              href={`/calendar?y=${year}&m=${month}&d=${day}`}
+              scroll={false}
+              aria-current={isPicked ? "date" : undefined}
+              aria-label={`${dayLong.format(new Date(year, month, day))}${isToday ? " วันนี้" : ""}${list.length ? ` · ${list.length} รายการ ${states.map((s) => STATE_WORD[s]).join(" ")}` : ""}`}
+              className={`flex h-16 flex-col justify-between border-b border-e border-hair p-1.5 font-mono text-xs ${
+                isToday ? "bg-ink text-paper" : ""
+              } ${isPicked ? "font-bold outline-2 -outline-offset-2 outline-brand" : ""}`}
+            >
+              <span>{day}</span>
+              <span className="flex gap-[3px]">
+                {states.map((s) => (
+                  <span key={s} className={`size-2 border-[1.5px] ${MARK[s]}`} />
+                ))}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+
+      <ul className="flex flex-wrap gap-4 border-y border-ink px-4 py-3 text-xs text-muted">
+        {(Object.keys(MARK) as EntryState[]).map((s) => (
+          <li key={s} className="flex items-center gap-1.5">
+            <span aria-hidden className={`size-2 border-[1.5px] ${MARK[s]}`} />
+            {STATE_WORD[s]}
           </li>
         ))}
       </ul>
-    </div>
+
+      {picked && (
+        <section className="px-4 pt-4">
+          <div className="flex items-baseline justify-between border-b border-ink pb-2.5">
+            <h2 className="headline text-xl font-bold">{dayLong.format(new Date(year, month, picked))}</h2>
+            <span className="label">{pickedEntries.length} รายการ</span>
+          </div>
+          {pickedEntries.length === 0 ? (
+            <p className="py-5 text-sm text-muted">ไม่มีรายการวันนี้</p>
+          ) : (
+            <EntryList entries={pickedEntries} categories={categories} today={today} showDay={false} />
+          )}
+        </section>
+      )}
+      {!picked && <p className="px-4 py-5 text-sm text-muted">แตะวันที่เพื่อดูรายการของวันนั้น</p>}
+    </>
   );
 }

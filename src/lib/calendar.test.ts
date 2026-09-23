@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { calendarCells, stateOf } from "@/components/calendar-grid";
+import { calendarCells, dueLabel, stateOf } from "@/lib/calendar";
 import type { Entry } from "@/lib/types";
 
 const entry = (over: Partial<Entry> = {}): Entry => ({
@@ -46,4 +46,12 @@ test("stateOf: an unpaid entry after today is due", () => {
 
 test("stateOf: an unpaid entry due exactly today is due, not overdue", () => {
   expect(stateOf(entry({ due_date: "2026-09-20" }), "2026-09-20")).toBe("due");
+});
+
+test("dueLabel counts days either side of today, and is null once paid", () => {
+  expect(dueLabel(entry({ due_date: "2026-09-20" }), "2026-09-24")).toBe("เกินกำหนด 4 วัน");
+  expect(dueLabel(entry({ due_date: "2026-09-24" }), "2026-09-24")).toBe("ครบวันนี้");
+  expect(dueLabel(entry({ due_date: "2026-09-25" }), "2026-09-24")).toBe("ครบพรุ่งนี้");
+  expect(dueLabel(entry({ due_date: "2026-10-01" }), "2026-09-24")).toBe("อีก 7 วัน");
+  expect(dueLabel(entry({ paid_at: "2026-09-24T00:00:00Z" }), "2026-09-24")).toBeNull();
 });

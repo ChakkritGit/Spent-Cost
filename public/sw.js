@@ -1,4 +1,4 @@
-const CACHE = "expenses-v1";
+const CACHE = "spent-cost-v2";
 const SHELL = ["/", "/plans", "/calendar"];
 
 self.addEventListener("install", (event) => {

@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { addMonths, daysInMonth, dueDateFor, monthKey } from "@/lib/month";
+import { addMonths, daysInMonth, dueDateFor, monthFrom, monthKey, todayIso } from "@/lib/month";
 
 test("daysInMonth knows leap years", () => {
   expect(daysInMonth(2026, 1)).toBe(28); // Feb 2026
@@ -28,4 +28,17 @@ test("addMonths rolls the year in both directions", () => {
   expect(addMonths(2026, 11, 1)).toEqual({ year: 2027, month: 0 });
   expect(addMonths(2026, 0, -1)).toEqual({ year: 2025, month: 11 });
   expect(addMonths(2026, 8, 0)).toEqual({ year: 2026, month: 8 });
+});
+
+test("todayIso is Bangkok's date, not UTC's", () => {
+  // 23 Sep 18:30 UTC is already 24 Sep 01:30 in Bangkok.
+  expect(todayIso(new Date("2026-09-23T18:30:00Z"))).toBe("2026-09-24");
+  expect(todayIso(new Date("2026-09-23T16:59:00Z"))).toBe("2026-09-23");
+});
+
+test("monthFrom reads a valid query and falls back to today's month otherwise", () => {
+  expect(monthFrom("2026", "0", "2026-09-24")).toEqual({ year: 2026, month: 0 });
+  expect(monthFrom(undefined, undefined, "2026-09-24")).toEqual({ year: 2026, month: 8 });
+  expect(monthFrom("2026", "12", "2026-09-24")).toEqual({ year: 2026, month: 8 });
+  expect(monthFrom("abc", "3", "2026-09-24")).toEqual({ year: 2026, month: 8 });
 });

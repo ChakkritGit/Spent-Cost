@@ -2,17 +2,15 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "รายจ่าย",
-    short_name: "รายจ่าย",
-    description: "บันทึกค่าใช้จ่าย หนี้ และรายการประจำเดือน",
+    name: "Spent/Cost",
+    short_name: "Spent/Cost",
+    description: "บันทึกรายจ่าย ผ่อน และหนี้ — เดือนต่อเดือน",
     start_url: "/",
     display: "standalone",
-    // Literal hex required by the Web Manifest spec (no CSS custom properties
-    // here). background_color mirrors --bg light; theme_color mirrors --accent
-    // light. Keep in sync with src/app/globals.css and the viewport.themeColor
-    // pair in src/app/layout.tsx if the palette moves again.
-    background_color: "#f1f2f4",
-    theme_color: "#6d28d9",
+    // Literal hex: the manifest takes no custom properties. Mirrors --paper in
+    // globals.css and viewport.themeColor in layout.tsx.
+    background_color: "#f8f9fa",
+    theme_color: "#f8f9fa",
     lang: "th",
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png" },

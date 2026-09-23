@@ -7,6 +7,25 @@ import { addMonths } from "@/lib/month";
 import { hashPin } from "@/lib/pin";
 import { dayOfMonth, num, pinFormat, positiveNum, text } from "@/lib/validate";
 
+/**
+ * Every action answers `{ error }` rather than throwing: in production a
+ * thrown message reaches the client only as a generic digest, so the Thai
+ * messages in validate.ts would never be seen.
+ */
+export type Result = { error?: string };
+
+async function run(fn: () => Promise<void>): Promise<Result> {
+  try {
+    await fn();
+    revalidatePath("/", "layout");
+    return {};
+  } catch (e) {
+    // Our own messages are Error instances; a PostgREST error is a plain
+    // object whose English detail is not for the screen.
+    return { error: e instanceof Error ? e.message : "บันทึกไม่สำเร็จ ลองอีกครั้ง" };
+  }
+}
+
 async function userId(): Promise<string> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -14,114 +33,135 @@ async function userId(): Promise<string> {
   return user.id;
 }
 
-export async function savePlan(formData: FormData) {
-  const supabase = await createClient();
-  const id = formData.get("id");
-  const total = String(formData.get("total_amount") ?? "").trim();
-  const row = {
-    user_id: await userId(),
-    name: text(formData.get("name"), "ชื่อ"),
-    amount: num(formData.get("amount"), "จำนวนเงิน"),
-    category: text(formData.get("category"), "หมวดหมู่"),
-    day_of_month: dayOfMonth(formData.get("day_of_month")),
-    total_amount: total === "" ? null : positiveNum(total, "ยอดรวมทั้งหมด"),
-    active: formData.get("active") !== null,
-  };
-  const { error, data } = id
-    ? await supabase.from("plans").update(row).eq("id", String(id)).select("id")
-    : await supabase.from("plans").insert(row);
-  if (error) throw error;
-  // RLS filters the update to zero rows for a stale id or someone else's
-  // row without erroring — treat that as a failure, not a silent no-op.
-  if (id && (data?.length ?? 0) === 0) throw new Error("ไม่พบแผนที่จะแก้ไข");
-  revalidatePath("/plans");
-  revalidatePath("/");
+/**
+ * RLS filters a write to someone else's row, or a stale id, down to zero rows
+ * without an error. Selecting the id back turns that silent no-op into one.
+ */
+function touched(res: { error: unknown; data: unknown[] | null }, missing: string) {
+  if (res.error) throw res.error;
+  if ((res.data?.length ?? 0) === 0) throw new Error(missing);
 }
 
-export async function deletePlan(id: string) {
-  const supabase = await createClient();
-  const { error, data } = await supabase.from("plans").delete().eq("id", id).select("id");
-  if (error) throw error;
-  if ((data?.length ?? 0) === 0) throw new Error("ไม่พบแผนที่จะลบ");
-  revalidatePath("/plans");
-  revalidatePath("/");
+export async function savePlan(formData: FormData): Promise<Result> {
+  return run(async () => {
+    const supabase = await createClient();
+    const id = formData.get("id");
+    const total = String(formData.get("total_amount") ?? "").trim();
+    const before = String(formData.get("paid_before") ?? "").trim();
+    const row = {
+      user_id: await userId(),
+      name: text(formData.get("name"), "ชื่อ"),
+      amount: num(formData.get("amount"), "ยอดต่อเดือน"),
+      category: text(formData.get("category"), "หมวดหมู่"),
+      day_of_month: dayOfMonth(formData.get("day_of_month")),
+      total_amount: total === "" ? null : positiveNum(total, "ยอดหนี้รวม"),
+      // Only a debt has progress to start from.
+      paid_before: total === "" || before === "" ? 0 : num(before, "ยอดที่จ่ายไปก่อนหน้า"),
+      active: formData.get("active") !== null,
+    };
+    if (id) touched(await supabase.from("plans").update(row).eq("id", String(id)).select("id"), "ไม่พบแผนที่จะแก้ไข");
+    else {
+      const { error } = await supabase.from("plans").insert(row);
+      if (error) throw error;
+    }
+  });
 }
 
-export async function saveEntry(formData: FormData) {
-  const supabase = await createClient();
-  const id = formData.get("id");
-  const row = {
-    user_id: await userId(),
-    plan_id: (formData.get("plan_id") as string) || null,
-    name: text(formData.get("name"), "ชื่อ"),
-    amount: num(formData.get("amount"), "จำนวนเงิน"),
-    category: text(formData.get("category"), "หมวดหมู่"),
-    due_date: String(formData.get("due_date")),
-  };
-  const { error, data } = id
-    ? await supabase.from("entries").update(row).eq("id", String(id)).select("id")
-    : await supabase.from("entries").insert(row);
-  if (error) throw error;
-  if (id && (data?.length ?? 0) === 0) throw new Error("ไม่พบรายการที่จะแก้ไข");
-  revalidatePath("/", "layout");
+/** Closing a finished plan without losing its history — generation skips inactive plans. */
+export async function setPlanActive(id: string, active: boolean): Promise<Result> {
+  return run(async () => {
+    const supabase = await createClient();
+    touched(await supabase.from("plans").update({ active }).eq("id", id).select("id"), "ไม่พบแผน");
+  });
 }
 
-export async function deleteEntry(id: string) {
-  const supabase = await createClient();
-  const { error, data } = await supabase.from("entries").delete().eq("id", id).select("id");
-  if (error) throw error;
-  if ((data?.length ?? 0) === 0) throw new Error("ไม่พบรายการที่จะลบ");
-  revalidatePath("/", "layout");
+export async function deletePlan(id: string): Promise<Result> {
+  return run(async () => {
+    const supabase = await createClient();
+    touched(await supabase.from("plans").delete().eq("id", id).select("id"), "ไม่พบแผนที่จะลบ");
+  });
 }
 
-export async function togglePaid(id: string, paid: boolean) {
-  const supabase = await createClient();
-  const { error, data } = await supabase
-    .from("entries")
-    .update({ paid_at: paid ? new Date().toISOString() : null })
-    .eq("id", id)
-    .select("id");
-  if (error) throw error;
-  if ((data?.length ?? 0) === 0) throw new Error("ไม่พบรายการที่จะทำเครื่องหมาย");
-  revalidatePath("/", "layout");
+export async function saveEntry(formData: FormData): Promise<Result> {
+  return run(async () => {
+    const supabase = await createClient();
+    const id = formData.get("id");
+    const dueDate = String(formData.get("due_date") ?? "");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) throw new Error("กรุณาระบุวันที่");
+    const row = {
+      user_id: await userId(),
+      plan_id: (formData.get("plan_id") as string) || null,
+      name: text(formData.get("name"), "ชื่อ"),
+      amount: num(formData.get("amount"), "จำนวนเงิน"),
+      category: text(formData.get("category"), "หมวดหมู่"),
+      due_date: dueDate,
+    };
+    if (id) touched(await supabase.from("entries").update(row).eq("id", String(id)).select("id"), "ไม่พบรายการที่จะแก้ไข");
+    else {
+      const { error } = await supabase.from("entries").insert(row);
+      if (error) throw error;
+    }
+  });
+}
+
+export async function deleteEntry(id: string): Promise<Result> {
+  return run(async () => {
+    const supabase = await createClient();
+    touched(await supabase.from("entries").delete().eq("id", id).select("id"), "ไม่พบรายการที่จะลบ");
+  });
+}
+
+export async function togglePaid(id: string, paid: boolean): Promise<Result> {
+  return run(async () => {
+    const supabase = await createClient();
+    touched(
+      await supabase.from("entries").update({ paid_at: paid ? new Date().toISOString() : null }).eq("id", id).select("id"),
+      "ไม่พบรายการ",
+    );
+  });
 }
 
 /**
- * Copy every active plan into the month after (year, month).
- * Safe to press twice: unique (plan_id, due_date) turns a repeat into a no-op
- * for rows that already exist, so only plans added since the last press appear.
+ * Copy every active plan into the month after (year, month). Safe to press
+ * twice: unique (plan_id, due_date) turns a repeat into a no-op for rows that
+ * already exist, so only plans added since the last press appear.
  */
-export async function generateMonth(year: number, month: number) {
-  const supabase = await createClient();
-  const next = addMonths(year, month, 1);
-  const rows = plannedRowsFor(await getPlans(), next.year, next.month);
-  if (rows.length === 0) return { inserted: 0 };
-  const { data, error } = await supabase
-    .from("entries")
-    .upsert(rows, { onConflict: "plan_id,due_date", ignoreDuplicates: true })
-    .select("id");
-  if (error) throw error;
-  revalidatePath("/", "layout");
-  return { inserted: data?.length ?? 0 };
+export async function generateMonth(year: number, month: number): Promise<Result & { inserted?: number }> {
+  let inserted = 0;
+  const result = await run(async () => {
+    const supabase = await createClient();
+    const next = addMonths(year, month, 1);
+    const rows = plannedRowsFor(await getPlans(), next.year, next.month);
+    if (rows.length === 0) return;
+    const { data, error } = await supabase
+      .from("entries")
+      .upsert(rows, { onConflict: "plan_id,due_date", ignoreDuplicates: true })
+      .select("id");
+    if (error) throw error;
+    inserted = data?.length ?? 0;
+  });
+  return { ...result, inserted };
 }
 
-export async function setPin(pin: string) {
-  const supabase = await createClient();
-  const id = await userId();
-  const { error } = await supabase.from("profiles").update({ pin_hash: await hashPin(id, pinFormat(pin)) }).eq("id", id);
-  if (error) throw error;
-  revalidatePath("/", "layout");
+export async function setPin(pin: string): Promise<Result> {
+  return run(async () => {
+    const supabase = await createClient();
+    const id = await userId();
+    const { error } = await supabase.from("profiles").update({ pin_hash: await hashPin(id, pinFormat(pin)) }).eq("id", id);
+    if (error) throw error;
+  });
 }
 
-export async function clearPin() {
-  const supabase = await createClient();
-  const id = await userId();
-  const { error } = await supabase.from("profiles").update({ pin_hash: null }).eq("id", id);
-  if (error) throw error;
-  revalidatePath("/", "layout");
+export async function clearPin(): Promise<Result> {
+  return run(async () => {
+    const supabase = await createClient();
+    const id = await userId();
+    const { error } = await supabase.from("profiles").update({ pin_hash: null }).eq("id", id);
+    if (error) throw error;
+  });
 }
 
-/** Returns whether the PIN matched. Never returns the stored hash. Fails closed: a fetch error is not "no PIN set". */
+/** Whether the PIN matched. Never returns the stored hash. Fails closed: a fetch error is not "no PIN set". */
 export async function verifyPin(pin: string): Promise<boolean> {
   const supabase = await createClient();
   const id = await userId();

@@ -10,6 +10,7 @@ const plan = (over: Partial<Plan> = {}): Plan => ({
   category: "สมาชิก",
   day_of_month: 15,
   total_amount: null,
+  paid_before: 0,
   active: true,
   created_at: "2026-01-01T00:00:00Z",
   ...over,
@@ -88,4 +89,11 @@ test("toEntry coerces string amounts into numbers, including zero", () => {
 
 test("toEntry passes a numeric amount through unchanged", () => {
   expect(toEntry(entryRow({ amount: 419 })).amount).toBe(419);
+});
+
+test("toPlan reads a missing paid_before as 0, before migration 0002 has run", () => {
+  const { paid_before, ...row } = plan();
+  void paid_before;
+  expect(toPlan(row).paid_before).toBe(0);
+  expect(toPlan({ ...row, paid_before: "1500.50" }).paid_before).toBe(1500.5);
 });

@@ -1,144 +1,160 @@
 @import "tailwindcss";
 
+/* "สมุดบัญชี" — paper, ink, one electric blue, 1px square rules.
+   See docs/superpowers/specs/2026-09-24-ledger-rebuild.md. */
+
 :root {
-  --bg: #f1f2f4;
-  --card: #ffffff;
-  --hero: #23252f;
-  --hero-fg: #ffffff;
-  --hero-muted: #a8abb8;
-  --hero-track: rgba(255, 255, 255, 0.16);
-  --hero-border: transparent;
-  --fg: #14151a;
-  /* Spec's own --muted (#6b6f7d) computes 4.47:1 against the spec's own --bg
-     (#f1f2f4) — under the 4.5:1 AA floor, and --muted sits directly on --bg
-     in several places (MonthSwitcher's arrows, the login subtitle, the
-     calendar's weekday header). Deepened one notch to #63677a — 5.00:1 on
-     --bg, 5.60:1 on --card. Same fix shape as task 5b's accent correction:
-     computed, found the spec's own pair failed, corrected at the token. */
-  --muted: #63677a;
-  --line: #e4e6ea;
-  --accent: #6d28d9;
-  --accent-fg: #ffffff;
-  --accent-soft: #ede9fe;
-  /* The FAB and the selected day only — never behind text. See --action-text. */
-  --action: #ea580c;
-  --action-fg: #ffffff;
-  --action-text: #c2410c;
-  --paid: #ede9fe;
-  --paid-fg: #5b21b6;
-  --due: #ffedd5;
-  --due-fg: #9a3412;
-  --overdue: #ffe4e6;
-  --overdue-fg: #9f1239;
-  /* Bar chart's non-current months. Deliberately quiet: low contrast against
-     --card is the point (a neutral tint, not a second saturated colour) —
-     not text, not a UI boundary, so it carries no WCAG contrast minimum. */
-  --chart-neutral: #d7d9e0;
-  /* Categorical set for the donut, from the dataviz skill's validated default
-     palette (references/palette.md), slots 1-6. Not eyeballed: both modes
-     pass the skill's validator (lightness band, chroma floor, CVD separation,
-     normal-vision floor, contrast) against this app's card surface. Untouched
-     by the v2 redesign; re-verified against the new dark --card below. */
-  --chart-1: #2a78d6;
-  --chart-2: #eb6834;
-  --chart-3: #1baf7a;
-  --chart-4: #eda100;
-  --chart-5: #e87ba4;
-  --chart-6: #008300;
+  --paper: #f8f9fa;
+  --surface: #ffffff;
+  --ink: #0a0a0a;
+  --muted: #5c5f66; /* 5.9:1 on paper, 6.2:1 on surface */
+  --hair: #d9dbe0;
+  --brand: #0000ff; /* 8.6:1 on surface */
+  --brand-soft: #e8e8ff;
+  --on-brand: #ffffff;
+  --brand-2: #6666ff; /* category shades, never behind text */
+  --brand-3: #b3b3ff;
+  --warn: #9a3412; /* 7.3:1 on surface */
+  --danger: #b3122e; /* 6.6:1 on surface */
+  --danger-soft: #fff5f6;
+  --scrim: rgb(10 10 10 / 0.55);
 }
 
 :root.dark {
-  --bg: #15161b;
-  --card: #1d1f27;
-  /* Hero is already dark and stays the same colour in both themes — it gains
-     a hairline (--hero-border) instead of a contrast change, since a card
-     that's already near-black needs a boundary against a near-black page,
-     not a different fill. */
-  --hero: #23252f;
-  --hero-fg: #ffffff;
-  --hero-muted: #a8abb8;
-  --hero-track: rgba(255, 255, 255, 0.16);
-  --hero-border: rgba(255, 255, 255, 0.08);
-  --fg: #f4f5f7;
-  --muted: #9a9eae;
-  --line: #2a2c36;
-  --accent: #a78bfa;
-  --accent-fg: #1e1b3a;
-  --accent-soft: #2c2650;
-  --action: #fb923c;
-  --action-fg: #431407;
-  --action-text: #fb923c;
-  --paid: #2c2153;
-  --paid-fg: #c4b5fd;
-  --due: #3a2412;
-  --due-fg: #fdba74;
-  --overdue: #3f1522;
-  --overdue-fg: #fda4af;
-  --chart-neutral: #33353f;
-  --chart-1: #3987e5;
-  --chart-2: #d95926;
-  --chart-3: #199e70;
-  --chart-4: #c98500;
-  --chart-5: #d55181;
-  --chart-6: #008300;
+  --paper: #050505;
+  --surface: #0e0e11;
+  --ink: #ededed;
+  --muted: #9a9ca3; /* 7.3:1 on surface */
+  --hair: #26272c;
+  --brand: #7a7aff; /* 5.4:1 on surface */
+  --brand-soft: #16163a;
+  --on-brand: #050505; /* 6.4:1 on brand */
+  --brand-2: #4b4bd6;
+  --brand-3: #2b2b80;
+  --warn: #fb923c;
+  --danger: #ff5c7a;
+  --danger-soft: #2a0d14;
+  --scrim: rgb(0 0 0 / 0.7);
+  color-scheme: dark;
 }
 
 @theme inline {
-  --color-bg: var(--bg);
-  --color-card: var(--card);
-  --color-hero: var(--hero);
-  --color-hero-fg: var(--hero-fg);
-  --color-hero-muted: var(--hero-muted);
-  --color-hero-track: var(--hero-track);
-  --color-hero-border: var(--hero-border);
-  --color-fg: var(--fg);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
   --color-muted: var(--muted);
-  --color-line: var(--line);
-  --color-accent: var(--accent);
-  --color-accent-fg: var(--accent-fg);
-  --color-accent-soft: var(--accent-soft);
-  --color-action: var(--action);
-  --color-action-fg: var(--action-fg);
-  --color-action-text: var(--action-text);
-  --color-paid: var(--paid);
-  --color-paid-fg: var(--paid-fg);
-  --color-due: var(--due);
-  --color-due-fg: var(--due-fg);
-  --color-overdue: var(--overdue);
-  --color-overdue-fg: var(--overdue-fg);
-  --color-chart-neutral: var(--chart-neutral);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-chart-6: var(--chart-6);
-  /* Buttons and inputs sit at 14px radius — cards at the default rounded-3xl
-     (24px), pills at rounded-full. Named by role, not by size, per the spec's
-     "radii differ by role" rule; one declaration instead of rounded-[14px]
-     repeated across every form and button. */
-  --radius-btn: 14px;
+  --color-hair: var(--hair);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-on-brand: var(--on-brand);
+  --color-brand-2: var(--brand-2);
+  --color-brand-3: var(--brand-3);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --font-sans: var(--font-sans-latin), var(--font-sans-thai), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, Menlo, var(--font-sans-thai), monospace;
+  /* A ledger has no rounded corners. */
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
 }
 
-/* Two elevation levels, not five: a quiet lift for cards, a stronger one for
-   the FAB. Both fixed values, not themed — a dark page still wants a visible
-   shadow, just the same shadow (the surfaces it sits against changed color,
-   the light source didn't). */
-@utility shadow-card {
-  box-shadow:
-    0 1px 2px rgba(20, 21, 26, 0.04),
-    0 12px 28px -12px rgba(20, 21, 26, 0.16);
+/* Layered, so a utility on the element always wins — an unlayered rule here
+   beats every Tailwind class (text-on-brand lost to button{color:inherit}). */
+@layer base {
+  html {
+    background: var(--paper);
+    color: var(--ink);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+
+  /* Inputs keep the page's type, not the platform's. */
+  input,
+  button,
+  select {
+    font: inherit;
+    color: inherit;
+  }
 }
 
-@utility shadow-fab {
-  box-shadow:
-    0 10px 24px -6px rgba(234, 88, 12, 0.45),
-    0 3px 8px rgba(20, 21, 26, 0.18);
+@layer components {
+  /* The condensed headline cut. Thai stacks marks above and below, so it needs
+     more leading than Latin at the same size — 1.25 measured on the portfolio. */
+  .headline {
+    font-weight: 800;
+    font-stretch: 72%;
+    line-height: 1.1;
+  }
+  .headline:lang(th) {
+    line-height: 1.25;
+  }
+
+  .label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+  .label:lang(th) {
+    letter-spacing: 0;
+  }
+
+  /* The track behind a progress bar: ten-baht ticks, like ruled paper. */
+  .ticks {
+    background-image: repeating-linear-gradient(90deg, transparent 0 9px, var(--hair) 9px 10px);
+  }
+
+  .hatch {
+    background-image: repeating-linear-gradient(135deg, var(--ink) 0 1px, transparent 1px 5px);
+  }
+
+  /* A bottom sheet on a phone, a centred panel from sm up. */
+  dialog.sheet {
+    margin: auto auto 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 92dvh;
+    padding: 0;
+    border: 0;
+    border-top: 1px solid var(--ink);
+    background: var(--surface);
+    color: var(--ink);
+  }
+  dialog.sheet::backdrop {
+    background: var(--scrim);
+  }
+  @media (min-width: 640px) {
+    dialog.sheet {
+      margin: auto;
+      max-width: 28rem;
+      border: 1px solid var(--ink);
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    dialog.sheet[open] {
+      animation: sheet-in 180ms ease-out;
+    }
+  }
 }
 
-body {
-  background: var(--bg);
-  color: var(--fg);
-  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-  font-feature-settings: "tnum";  /* figures line up in columns */
+@keyframes sheet-in {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
 }
