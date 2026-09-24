@@ -3,10 +3,15 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
+  // Where to land after: "/settings" when a Google account was just linked.
+  // Only a same-site path — "//evil.com" would leave the app.
+  const next = request.nextUrl.searchParams.get("next") ?? "/";
+  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/";
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL("/", request.url));
+    if (!error) return NextResponse.redirect(new URL(safeNext, request.url));
   }
-  return NextResponse.redirect(new URL("/login?error=1", request.url));
+  // A failed link lands on settings with the error; a failed sign-in on /login.
+  return NextResponse.redirect(new URL(safeNext === "/settings" ? "/settings?link=failed" : "/login?error=1", request.url));
 }

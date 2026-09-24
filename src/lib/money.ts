@@ -80,3 +80,12 @@ export function niceMax(n: number): number {
   const p = 10 ** Math.floor(Math.log10(n));
   return [1, 2, 2.5, 5, 10].map((m) => m * p).find((v) => v >= n)!;
 }
+
+/**
+ * The total a debt must have for `remaining` to be what is left, given what has
+ * been paid. The statement's balance is the truth — interest the bank added
+ * lands in the total, and the payment history stays as it happened.
+ */
+export function totalForRemaining(paid: number, remaining: number): number {
+  return sum([paid, remaining]);
+}

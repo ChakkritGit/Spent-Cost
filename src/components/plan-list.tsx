@@ -1,8 +1,10 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { setPlanActive } from "@/app/actions";
+import { setDebtRemaining, setPlanActive } from "@/app/actions";
+import { Field, FormError, SubmitButton } from "@/components/fields";
 import { DeletePlan, PlanSheet } from "@/components/plan-sheet";
+import { Sheet } from "@/components/sheet";
 import { amount, baht } from "@/lib/money";
 import type { Plan } from "@/lib/types";
 
@@ -24,8 +26,10 @@ export type DebtView = { plan: Plan; paid: number; total: number; ratio: number;
 export function DebtCard({ debt, categories }: { debt: DebtView; categories: string[] }) {
   const { plan, paid, total, ratio, paidCount } = debt;
   const [editing, setEditing] = useState(false);
+  const [adjusting, setAdjusting] = useState(false);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const left = Math.max(0, Math.round((total - paid) * 100) / 100);
   // Reported as it is, past 100% when overpaid; only the bar is clamped.
   const percent = `${(ratio * 100).toFixed(1)}%`;
 
@@ -36,7 +40,7 @@ export function DebtCard({ debt, categories }: { debt: DebtView; categories: str
         <span className="shrink-0 font-mono text-xs text-muted">{baht(plan.amount)}/ด. · วันที่ {plan.day_of_month}</span>
       </div>
       <div className="flex items-baseline justify-between gap-3">
-        <span className="headline text-[34px] leading-none text-brand">เหลือ {baht(Math.max(0, total - paid))}</span>
+        <span className="headline text-[34px] leading-none text-brand">เหลือ {baht(left)}</span>
         <span className="font-mono text-[13px] font-bold">{percent}</span>
       </div>
       <div className="flex h-3 border border-ink" role="img" aria-label={`จ่ายแล้ว ${percent}`}>
@@ -51,6 +55,9 @@ export function DebtCard({ debt, categories }: { debt: DebtView; categories: str
         <div className="flex border border-ink">
           <button type="button" onClick={() => setEditing(true)} className="h-10 border-e border-ink bg-surface px-3.5 font-mono text-xs">
             แก้ไข
+          </button>
+          <button type="button" onClick={() => setAdjusting(true)} className="h-10 border-e border-ink bg-surface px-3.5 font-mono text-xs">
+            ปรับยอด
           </button>
           <button
             type="button"
@@ -71,7 +78,53 @@ export function DebtCard({ debt, categories }: { debt: DebtView; categories: str
       </div>
       {error && <p role="alert" className="text-xs text-danger">{error}</p>}
       <PlanSheet key={String(editing)} open={editing} onClose={() => setEditing(false)} plan={plan} categories={categories} paidCount={paidCount} />
+      <AdjustDebtSheet open={adjusting} onClose={() => setAdjusting(false)} plan={plan} paid={paid} left={left} />
     </article>
+  );
+}
+
+/** Bring a debt in line with the bank's statement: type what is still owed. */
+function AdjustDebtSheet({ open, onClose, plan, paid, left }: { open: boolean; onClose: () => void; plan: Plan; paid: number; left: number }) {
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const remaining = String(new FormData(e.currentTarget).get("remaining"));
+    setError(null);
+    start(async () => {
+      const { error } = await setDebtRemaining(plan.id, remaining);
+      if (error) setError(error);
+      else onClose();
+    });
+  }
+
+  return (
+    <Sheet open={open} onClose={onClose} title={`ปรับยอด ${plan.name}`}>
+      <form onSubmit={submit} className="flex flex-col">
+        <p className="border-b border-hair px-4 py-3 font-mono text-xs text-muted">
+          ตอนนี้ในแอป: เหลือ {amount(left)} · จ่ายแล้ว {amount(paid)} · ยอดรวม {amount(paid + left)}
+        </p>
+        <Field
+          label="ยอดคงเหลือตาม statement (บาท)"
+          name="remaining"
+          required
+          inputMode="decimal"
+          autoComplete="off"
+          defaultValue={left}
+          autoFocus
+          className="border-b border-hair font-mono"
+        />
+        <p className="px-4 py-3 text-[13px] leading-relaxed text-muted">
+          ยอดที่จ่ายไปแล้วยังนับเหมือนเดิม แอปจะปรับยอดหนี้รวมเป็น “จ่ายแล้ว + คงเหลือ” — ดอกเบี้ยที่เพิ่มขึ้น
+          หรือส่วนลดจะไปอยู่ในยอดรวม
+        </p>
+        <div className="flex flex-col gap-3 px-4 pb-5">
+          <FormError message={error} />
+          <SubmitButton pending={pending}>บันทึกยอดคงเหลือ</SubmitButton>
+        </div>
+      </form>
+    </Sheet>
   );
 }
 

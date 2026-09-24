@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { plannedRowsFor, getPlans } from "@/lib/data";
+import { plannedRowsFor, getPlans, toEntry, toPlan } from "@/lib/data";
+import { debtProgress, totalForRemaining } from "@/lib/money";
 import { addMonths } from "@/lib/month";
 import { hashPin } from "@/lib/pin";
 import { dayOfMonth, num, pinFormat, positiveNum, text } from "@/lib/validate";
@@ -72,6 +73,27 @@ export async function setPlanActive(id: string, active: boolean): Promise<Result
   return run(async () => {
     const supabase = await createClient();
     touched(await supabase.from("plans").update({ active }).eq("id", id).select("id"), "ไม่พบแผน");
+  });
+}
+
+/**
+ * Set what is still owed to the figure on the statement. The total moves to
+ * `paid + remaining`; the paid history is left as it happened.
+ */
+export async function setDebtRemaining(id: string, remaining: string): Promise<Result> {
+  return run(async () => {
+    const left = num(remaining, "ยอดคงเหลือ");
+    const supabase = await createClient();
+    const [plan, entries] = await Promise.all([
+      supabase.from("plans").select("*").eq("id", id).single(),
+      supabase.from("entries").select("*").eq("plan_id", id).not("paid_at", "is", null),
+    ]);
+    if (plan.error) throw new Error("ไม่พบหนี้ก้อนนี้");
+    if (entries.error) throw entries.error;
+    const { paid } = debtProgress(toPlan(plan.data), entries.data.map(toEntry));
+    const total = totalForRemaining(paid, left);
+    if (total <= 0) throw new Error("ยังไม่มียอดที่จ่ายและยอดคงเหลือเป็น 0 — ถ้าหนี้หมดแล้ว ใช้ “ปิดใช้งาน”");
+    touched(await supabase.from("plans").update({ total_amount: total }).eq("id", id).select("id"), "ไม่พบหนี้ก้อนนี้");
   });
 }
 

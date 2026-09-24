@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { byCategory, debtProgress, monthlyTotals, niceMax, summarise, withOther } from "@/lib/money";
+import { byCategory, debtProgress, monthlyTotals, niceMax, summarise, totalForRemaining, withOther } from "@/lib/money";
 import type { Entry, Plan } from "@/lib/types";
 
 const plan = (over: Partial<Plan> = {}): Plan => ({
@@ -145,4 +145,13 @@ test("niceMax rounds up to a readable axis top", () => {
   expect(niceMax(20000)).toBe(20000);
   expect(niceMax(2100)).toBe(2500);
   expect(niceMax(0)).toBe(1000);
+});
+
+test("totalForRemaining keeps what was paid and makes the remainder the statement's", () => {
+  const p = plan({ total_amount: 500000, paid_before: 10000 });
+  const paid = debtProgress(p, [entry({ amount: 12000 })]).paid; // 22,000
+  const total = totalForRemaining(paid, 490123.45); // interest added: owes more than 478,000
+  expect(total).toBe(512123.45);
+  const after = debtProgress({ ...p, total_amount: total }, [entry({ amount: 12000 })]);
+  expect(Math.round((after.total - after.paid) * 100) / 100).toBe(490123.45);
 });

@@ -1,10 +1,16 @@
+import { LinkedAccounts } from "@/components/linked-accounts";
 import { PageHeader } from "@/components/page-header";
 import { PinSettings } from "@/components/pin-settings";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function SettingsPage() {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ link?: string }> }) {
+  const { link } = await searchParams;
   const supabase = await createClient();
-  const { data, error } = await supabase.from("profiles").select("pin_hash").single();
+  const [{ data, error }, { data: auth }] = await Promise.all([
+    supabase.from("profiles").select("pin_hash").single(),
+    supabase.auth.getUser(),
+  ]);
+  const google = auth.user?.identities?.find((i) => i.provider === "google");
   // Fails closed, as verifyPin does: a fetch error is not "no PIN set".
   const hasPin = error ? true : Boolean(data?.pin_hash);
 
@@ -12,6 +18,11 @@ export default async function SettingsPage() {
     <>
       <PageHeader title="ตั้งค่า" />
       <PinSettings hasPin={hasPin} />
+      <LinkedAccounts
+        email={auth.user?.email ?? null}
+        google={google ? String(google.identity_data?.email ?? "ผูกแล้ว") : null}
+        failed={link === "failed"}
+      />
       <section className="flex flex-col gap-2.5 border-b border-ink px-4 py-5">
         <h2 className="headline text-[22px] font-bold">ติดตั้งเป็นแอป</h2>
         <p className="text-[13px] leading-relaxed text-muted">
