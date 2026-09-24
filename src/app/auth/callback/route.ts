@@ -1,12 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { sameSitePath } from "@/lib/redirect";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   // Where to land after: "/settings" when a Google account was just linked.
-  // Only a same-site path — "//evil.com" would leave the app.
-  const next = request.nextUrl.searchParams.get("next") ?? "/";
-  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/";
+  const safeNext = sameSitePath(request.nextUrl.searchParams.get("next"), request.url);
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
