@@ -12,8 +12,20 @@ const thai = Noto_Sans_Thai({ subsets: ["thai"], axes: ["wdth"], variable: "--fo
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", display: "swap" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://expenses.chakkritton.com"),
   title: "Spent/Cost",
   description: "บันทึกรายจ่าย ผ่อน และหนี้ — เดือนต่อเดือน",
+  // Crawlers are signed out, so they land on /login; /og.jpg is in the
+  // proxy's matcher exclusions so they can fetch the image too.
+  openGraph: {
+    type: "website",
+    siteName: "Spent/Cost",
+    title: "Spent/Cost",
+    description: "บันทึกรายจ่าย ผ่อน และหนี้ — เดือนต่อเดือน",
+    locale: "th_TH",
+    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Spent/Cost — ระบบติดตามรายจ่าย ผ่อน และหนี้" }],
+  },
+  twitter: { card: "summary_large_image", images: ["/og.jpg"] },
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Spent/Cost" },
   // From /public under the icon-*.png names the proxy's matcher already lets
   // through, so the login page (signed out) gets its favicon too.
