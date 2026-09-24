@@ -1,4 +1,5 @@
 import { LinkedAccounts } from "@/components/linked-accounts";
+import { NotificationSettings } from "@/components/notification-settings";
 import { PageHeader } from "@/components/page-header";
 import { PinSettings } from "@/components/pin-settings";
 import { createClient } from "@/lib/supabase/server";
@@ -18,6 +19,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     <>
       <PageHeader title="ตั้งค่า" />
       <PinSettings hasPin={hasPin} />
+      <NotificationSettings />
       <LinkedAccounts
         email={auth.user?.email ?? null}
         google={google ? String(google.identity_data?.email ?? "ผูกแล้ว") : null}

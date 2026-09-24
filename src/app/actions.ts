@@ -183,6 +183,31 @@ export async function clearPin(): Promise<Result> {
   });
 }
 
+/**
+ * Remember this device for the morning reminder. Upsert on the endpoint, so
+ * re-subscribing the same browser replaces its keys rather than piling up.
+ * ponytail: a browser another account already subscribed is refused by RLS;
+ * turn it off in that account first.
+ */
+export async function savePushSubscription(sub: { endpoint: string; p256dh: string; auth: string }): Promise<Result> {
+  return run(async () => {
+    if (!/^https:\/\//.test(sub.endpoint) || !sub.p256dh || !sub.auth) throw new Error("ข้อมูลการแจ้งเตือนไม่ถูกต้อง");
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("push_subscriptions")
+      .upsert({ user_id: await userId(), ...sub }, { onConflict: "endpoint" });
+    if (error) throw error;
+  });
+}
+
+export async function deletePushSubscription(endpoint: string): Promise<Result> {
+  return run(async () => {
+    const supabase = await createClient();
+    const { error } = await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+    if (error) throw error;
+  });
+}
+
 /** Whether the PIN matched. Never returns the stored hash. Fails closed: a fetch error is not "no PIN set". */
 export async function verifyPin(pin: string): Promise<boolean> {
   const supabase = await createClient();
