@@ -9,7 +9,8 @@ const monthName = new Intl.DateTimeFormat("th-TH", { month: "long" });
 export function PageHeader({ title, aside, action }: { title: string; aside?: React.ReactNode; action?: React.ReactNode }) {
   return (
     <header className="flex flex-col gap-3.5 border-b border-ink px-4 pb-4 pt-[calc(18px+env(safe-area-inset-top))] lg:pt-6">
-      <div className="flex min-h-11 items-center justify-between gap-3">
+      {/* Only the mark sits here without an aside, and the sidebar carries it from lg. */}
+      <div className={`flex min-h-11 items-center justify-between gap-3 ${aside ? "" : "lg:hidden"}`}>
         <Mark className="lg:hidden" />
         {aside}
       </div>
