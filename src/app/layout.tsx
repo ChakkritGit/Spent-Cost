@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Spent/Cost" },
   // From /public under the icon-*.png names the proxy's matcher already lets
   // through, so the login page (signed out) gets its favicon too.
-  icons: { icon: "/icon-192.png", apple: "/icon-192.png" },
+  icons: { icon: "/icon-192.png", apple: { url: "/icon-180.png", sizes: "180x180" } },
 };
 
 // Literal hex: the Viewport API takes no custom properties. Mirrors --paper in
