@@ -9,7 +9,7 @@
 
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
-import { bangkokToday, addDays, reminderFor, type Due } from "../_shared/reminders.ts";
+import { bangkokToday, addDays, missingMonthRows, nextMonthStart, reminderFor, type Due } from "../_shared/reminders.ts";
 
 webpush.setVapidDetails(
   Deno.env.get("VAPID_SUBJECT") ?? "https://spent-cost.vercel.app",
@@ -69,8 +69,41 @@ async function send(admin: SupabaseClient, messages: Map<string, Message>) {
   return { sent, removed: gone.length };
 }
 
+/**
+ * Writes plan rows for today's and tomorrow's months when a user has none, so
+ * the 1st is not empty and the last day can warn about a bill due on the 1st.
+ * The explicit user_id/plan filters are by design: the service role skips RLS.
+ */
+async function ensureMonths(admin: SupabaseClient, today: string) {
+  for (const day of new Set([today.slice(0, 7), addDays(today, 1).slice(0, 7)])) {
+    const year = Number(day.slice(0, 4));
+    const month = Number(day.slice(5, 7)) - 1;
+    const [plans, existing] = await Promise.all([
+      admin.from("plans").select("id, user_id, name, amount, category, day_of_month, active").eq("active", true),
+      admin
+        .from("entries")
+        .select("user_id")
+        .not("plan_id", "is", null)
+        .gte("due_date", `${day}-01`)
+        .lt("due_date", nextMonthStart(day)),
+    ]);
+    if (plans.error) throw plans.error;
+    if (existing.error) throw existing.error;
+    const rows = missingMonthRows(
+      plans.data.map((p) => ({ ...p, amount: Number(p.amount) })),
+      new Set(existing.data.map((r) => r.user_id as string)),
+      year,
+      month,
+    );
+    if (rows.length === 0) continue;
+    const { error } = await admin.from("entries").upsert(rows, { onConflict: "plan_id,due_date", ignoreDuplicates: true });
+    if (error) throw error;
+  }
+}
+
 async function morning(admin: SupabaseClient) {
   const today = bangkokToday();
+  await ensureMonths(admin, today);
   const { data, error } = await admin
     .from("entries")
     .select("user_id, name, amount, due_date")

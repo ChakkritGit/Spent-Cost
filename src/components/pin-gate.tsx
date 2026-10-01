@@ -19,33 +19,41 @@ const getServerSnapshot = () => false;
  * the figures are not on screen the moment the app opens. Its own keypad, and
  * the keyboard works too.
  */
-export function PinGate({ hasPin, children }: { hasPin: boolean; children: React.ReactNode }) {
+export function PinGate({ hasPin, pinLength, children }: { hasPin: boolean; pinLength: number | null; children: React.ReactNode }) {
   const stored = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const [verified, setVerified] = useState(false);
   const [pin, setPin] = useState("");
-  const [wrong, setWrong] = useState(false);
+  const [wrong, setWrong] = useState<false | "pin" | "network">(false);
   const [checking, setChecking] = useState(false);
   const unlocked = !hasPin || stored || verified;
 
-  async function submit() {
-    if (pin.length < 4 || checking) return;
+  async function submit(value = pin) {
+    if (value.length < 4 || checking) return;
     setChecking(true);
-    const ok = await verifyPin(pin);
-    setChecking(false);
-    if (ok) {
-      sessionStorage.setItem(KEY, "1");
-      setVerified(true);
-    } else {
-      setWrong(true);
-      setPin("");
+    try {
+      if (await verifyPin(value)) {
+        sessionStorage.setItem(KEY, "1");
+        setVerified(true);
+        return;
+      }
+      setWrong("pin");
+    } catch {
+      setWrong("network");
+    } finally {
+      setChecking(false);
     }
+    setPin("");
   }
 
   function press(key: string) {
     setWrong(false);
     if (key === "del") setPin((p) => p.slice(0, -1));
     else if (key === "ok") void submit();
-    else setPin((p) => (p.length < MAX ? p + key : p));
+    else if (pin.length < (pinLength ?? MAX)) {
+      const next = pin + key;
+      setPin(next);
+      if (next.length === pinLength) void submit(next);
+    }
   }
 
   useEffect(() => {
@@ -61,7 +69,7 @@ export function PinGate({ hasPin, children }: { hasPin: boolean; children: React
 
   if (unlocked) return <>{children}</>;
 
-  const slots = Math.max(4, pin.length);
+  const slots = pinLength ?? Math.max(4, pin.length);
   const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "del", "0", "ok"];
 
   return (
@@ -74,7 +82,7 @@ export function PinGate({ hasPin, children }: { hasPin: boolean; children: React
             <span key={i} className={`h-11 w-9 border border-on-brand ${i < pin.length ? "bg-on-brand" : ""}`} />
           ))}
         </div>
-        {wrong && <p role="alert" className="font-mono text-sm">PIN ไม่ถูกต้อง ลองอีกครั้ง</p>}
+        {wrong && <p role="alert" className="font-mono text-sm">{wrong === "pin" ? "PIN ไม่ถูกต้อง ลองอีกครั้ง" : "ตรวจสอบไม่สำเร็จ ลองอีกครั้ง"}</p>}
       </div>
       <div className="mx-auto grid w-full max-w-sm grid-cols-3 border-t border-on-brand/50 pb-[env(safe-area-inset-bottom)]">
         {keys.map((k) => (

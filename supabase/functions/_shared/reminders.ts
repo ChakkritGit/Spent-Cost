@@ -45,3 +45,32 @@ export function reminderFor(entries: Due[], today: string): { title: string; bod
     .join("\n");
   return { title, body };
 }
+
+export type PlanRow = { id: string; user_id: string; name: string; amount: number; category: string; day_of_month: number; active: boolean };
+
+/**
+ * Plan entries to write for a month nobody has opened yet: active plans whose
+ * user has no plan entry in it. `month` is 0-based, like the app's. Mirrors
+ * `plannedRowsFor` + `dueDateFor` in src/lib (data.ts, month.ts), duplicated
+ * because this folder cannot import from src/: keep them in step.
+ */
+export function missingMonthRows(plans: PlanRow[], usersWithRows: Set<string>, year: number, month: number) {
+  const last = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return plans
+    .filter((p) => p.active && !usersWithRows.has(p.user_id))
+    .map((p) => ({
+      user_id: p.user_id,
+      plan_id: p.id,
+      name: p.name,
+      amount: p.amount,
+      category: p.category,
+      due_date: `${year}-${pad(month + 1)}-${pad(Math.min(p.day_of_month, last))}`,
+      paid_at: null,
+    }));
+}
+
+/** First day of the month after "YYYY-MM", for a `.lt` bound that is valid in 28- to 31-day months. */
+export function nextMonthStart(ym: string): string {
+  return new Date(Date.UTC(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)), 1)).toISOString().slice(0, 10);
+}

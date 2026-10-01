@@ -2,7 +2,7 @@ import Link from "next/link";
 import { EntryList } from "@/components/entry-list";
 import { MonthSwitcher, PageHeader, monthTitle } from "@/components/page-header";
 import { calendarCells, stateOf, type EntryState } from "@/lib/calendar";
-import { getCategories, getEntries } from "@/lib/data";
+import { ensureMonth, getCategories, getEntries } from "@/lib/data";
 import { daysInMonth, dueDateFor, monthFrom, monthKey, todayIso } from "@/lib/month";
 import type { Entry } from "@/lib/types";
 
@@ -23,6 +23,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const { year, month } = monthFrom(y, m, today);
   const key = monthKey(year, month);
   const last = daysInMonth(year, month);
+
+  if (key === today.slice(0, 7)) await ensureMonth(year, month).catch((e) => console.error("ensureMonth", e));
 
   const [entries, categories] = await Promise.all([
     getEntries(`${key}-01`, dueDateFor(year, month, 31)),

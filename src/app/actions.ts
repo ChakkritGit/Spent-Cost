@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { plannedRowsFor, getPlans, toEntry, toPlan } from "@/lib/data";
 import { debtProgress, totalForRemaining } from "@/lib/money";
 import { addMonths } from "@/lib/month";
-import { hashPin } from "@/lib/pin";
+import { pinMatches, pinRecord } from "@/lib/pin";
 import { dayOfMonth, num, pinFormat, positiveNum, text } from "@/lib/validate";
 
 /**
@@ -169,7 +169,7 @@ export async function setPin(pin: string): Promise<Result> {
   return run(async () => {
     const supabase = await createClient();
     const id = await userId();
-    const { error } = await supabase.from("profiles").update({ pin_hash: await hashPin(id, pinFormat(pin)) }).eq("id", id);
+    const { error } = await supabase.from("profiles").update({ pin_hash: await pinRecord(id, pinFormat(pin)) }).eq("id", id);
     if (error) throw error;
   });
 }
@@ -215,5 +215,5 @@ export async function verifyPin(pin: string): Promise<boolean> {
   const { data, error } = await supabase.from("profiles").select("pin_hash").eq("id", id).single();
   if (error) return false;
   if (!data?.pin_hash) return true;
-  return data.pin_hash === (await hashPin(id, pin));
+  return pinMatches(id, pin, data.pin_hash);
 }

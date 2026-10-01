@@ -66,6 +66,30 @@ export function plannedRowsFor(plans: Plan[], year: number, month: number) {
 }
 
 /**
+ * Writes the month's plan rows the first time it is viewed, so the 1st is not
+ * empty when nobody pressed "สร้างรายการเดือน". A month that already has any
+ * plan entry is left alone, so one deleted on purpose (a skipped month) stays gone.
+ *
+ * ponytail: deleting every plan entry of the current month brings them back on
+ * the next visit; a `generated_months` table fixes that if it matters.
+ */
+export async function ensureMonth(year: number, month: number): Promise<void> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("entries")
+    .select("id", { count: "exact", head: true })
+    .not("plan_id", "is", null)
+    .gte("due_date", `${monthKey(year, month)}-01`)
+    .lte("due_date", dueDateFor(year, month, 31));
+  if (error) throw error;
+  if (count) return;
+  const rows = plannedRowsFor(await getPlans(), year, month);
+  if (rows.length === 0) return;
+  const { error: upsertError } = await supabase.from("entries").upsert(rows, { onConflict: "plan_id,due_date", ignoreDuplicates: true });
+  if (upsertError) throw upsertError;
+}
+
+/**
  * Categories already in use, most recently used first — the chips in the
  * entry sheet, so "อาหาร" is picked rather than retyped as "ค่าอาหาร" and
  * split the category bar in two.

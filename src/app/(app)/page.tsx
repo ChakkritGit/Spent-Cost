@@ -3,7 +3,7 @@ import { EntryList } from "@/components/entry-list";
 import { GenerateMonthButton } from "@/components/generate-month-button";
 import { MonthSwitcher, PageHeader, monthTitle } from "@/components/page-header";
 import { Summary } from "@/components/summary";
-import { getAllDebtEntries, getCategories, getEntriesForMonths, getPlans } from "@/lib/data";
+import { ensureMonth, getAllDebtEntries, getCategories, getEntriesForMonths, getPlans } from "@/lib/data";
 import { addMonths, monthFrom, monthKey, todayIso } from "@/lib/month";
 import { byCategory, monthlyTotals, summarise } from "@/lib/money";
 
@@ -12,6 +12,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const today = todayIso();
   const { year, month } = monthFrom(y, m, today);
   const key = monthKey(year, month);
+
+  if (key === today.slice(0, 7)) await ensureMonth(year, month).catch((e) => console.error("ensureMonth", e));
 
   const [plans, windowEntries, debtEntries, categories] = await Promise.all([
     getPlans(),

@@ -90,6 +90,21 @@
     font: inherit;
     color: inherit;
   }
+
+  /* One feedback rule for every button: an overlay tinted with its own text colour, on background-image so no bg-* utility is overridden. */
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
+  @media (hover: hover) {
+    button:not(:disabled):hover {
+      background-image: linear-gradient(color-mix(in oklab, currentColor 8%, transparent) 0 0);
+    }
+  }
+
+  button:not(:disabled):active {
+    background-image: linear-gradient(color-mix(in oklab, currentColor 16%, transparent) 0 0);
+  }
 }
 
 @layer components {

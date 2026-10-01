@@ -75,9 +75,14 @@ not offer Web Push; Settings says so.
 
 ## What is verified, and what is not
 
-- `supabase/functions/_shared/reminders.ts` (who gets what text) — vitest.
+- `supabase/functions/_shared/reminders.ts` (who gets what text, and which plan
+  rows a month is missing) — vitest.
 - `public/sw.js`'s push handler parses a payload and an empty push and calls
   `showNotification` — checked in Chromium; headless Chromium refuses the
   notification permission itself, so the OS banner was not seen.
+- The morning job also writes the plan rows for today's month and tomorrow's
+  month when a user has none (so the 1st is not empty, and the last day can warn
+  about a bill due on the 1st). That write has not run either; `missingMonthRows`
+  is the tested part.
 - The Edge Function itself has not run: Deno is not installed here and it
   needs the deploy above. "ส่งทดสอบ" in Settings is the first end-to-end check.
