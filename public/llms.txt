@@ -1,0 +1,24 @@
+# Spent/Cost
+
+> บันทึกรายจ่ายประจำ ผ่อนสินค้า และหนี้ เดือนต่อเดือน (a Thai expense, instalment and debt tracker). Each person sees only their own data.
+
+Spent/Cost is a personal ledger for recurring bills, instalments and debts. A subscription such as Netflix and a loan with a progress bar are the same kind of plan; each month gets its own entries to tick off as paid.
+
+## Features
+
+- Monthly dashboard: what is due, what is paid, and what is left
+- A calendar of due dates
+- Instalments and debts with a progress bar toward the total
+- Web Push reminders the morning before a bill is due
+- Sign in with email or Google; a PIN screen on the device
+- Installable as an app, and the dashboard opens offline
+
+## Pages
+
+- [Sign in](https://expenses.chakkritton.com/login): the only public page; everything else needs an account
+
+## Related
+
+- [Author: Chakkrit Laolit](https://chakkritton.com)
+- [Project write-up](https://chakkritton.com/projects/spent-cost-with-claude-code)
+- [System status](https://status.chakkritton.com)

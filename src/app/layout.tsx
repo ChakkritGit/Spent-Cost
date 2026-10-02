@@ -13,19 +13,29 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", 
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://expenses.chakkritton.com"),
-  title: "Spent/Cost",
-  description: "บันทึกรายจ่าย ผ่อน และหนี้ — เดือนต่อเดือน",
+  title: { default: "Spent/Cost", template: "%s · Spent/Cost" },
+  description:
+    "Spent/Cost บันทึกรายจ่ายประจำ ผ่อนสินค้า และหนี้ เดือนต่อเดือน ดูยอดที่ต้องจ่าย ปฏิทินวันครบกำหนด และแจ้งเตือนก่อนถึงกำหนดจ่าย ใช้งานฟรี ติดตั้งเป็นแอปได้",
+  applicationName: "Spent/Cost",
+  keywords: ["บันทึกรายจ่าย", "ผ่อนสินค้า", "หนี้", "ค่าใช้จ่ายรายเดือน", "แจ้งเตือนบิล", "expense tracker"],
+  alternates: { canonical: "/login" },
   // Crawlers are signed out, so they land on /login; /og.jpg is in the
   // proxy's matcher exclusions so they can fetch the image too.
   openGraph: {
     type: "website",
     siteName: "Spent/Cost",
     title: "Spent/Cost",
-    description: "บันทึกรายจ่าย ผ่อน และหนี้ — เดือนต่อเดือน",
+    description: "บันทึกรายจ่าย ผ่อน และหนี้ เดือนต่อเดือน พร้อมปฏิทินและแจ้งเตือนก่อนครบกำหนด",
+    url: "/login",
     locale: "th_TH",
     images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Spent/Cost — ระบบติดตามรายจ่าย ผ่อน และหนี้" }],
   },
-  twitter: { card: "summary_large_image", images: ["/og.jpg"] },
+  twitter: {
+    card: "summary_large_image",
+    title: "Spent/Cost",
+    description: "บันทึกรายจ่าย ผ่อน และหนี้ เดือนต่อเดือน พร้อมปฏิทินและแจ้งเตือนก่อนครบกำหนด",
+    images: ["/og.jpg"],
+  },
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Spent/Cost" },
   // From /public under the icon-*.png names the proxy's matcher already lets
   // through, so the login page (signed out) gets its favicon too.

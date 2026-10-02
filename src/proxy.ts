@@ -31,5 +31,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|icon-.*\\.png|og\\.jpg).*)"],
+  // robots.txt, sitemap.xml and llms.txt are for crawlers, who are never signed in.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|icon-.*\\.png|og\\.jpg|robots\\.txt|sitemap\\.xml|llms\\.txt).*)"],
 };
