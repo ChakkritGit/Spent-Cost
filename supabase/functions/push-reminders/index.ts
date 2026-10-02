@@ -2,13 +2,16 @@
 // reads every user's unpaid entries, which needs the service role — and the
 // service role must never be in the Next.js app. Supabase injects it here.
 //
-// Two callers, each authenticated here (deployed with --no-verify-jwt):
+// Three callers, each authenticated here (deployed with --no-verify-jwt):
 // - pg_cron at 08:00 Bangkok, with the x-cron-secret header → everyone's reminders;
+// - the status worker, with the x-status-secret header → the last run, or an alert to one user
+//   (a separate secret, so it can never trigger the morning run);
 // - a signed-in user from Settings, with their session → a test to themselves.
 // Setup: docs/push-notifications.md.
 
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
+import { parseAlert } from "../_shared/alert.ts";
 import { bangkokToday, addDays, missingMonthRows, nextMonthStart, reminderFor, type Due } from "../_shared/reminders.ts";
 
 webpush.setVapidDetails(
@@ -33,7 +36,7 @@ function sameSecret(a: string, b: string): boolean {
   return diff === 0 && b.length > 0;
 }
 
-type Message = { title: string; body: string };
+type Message = { title: string; body: string; url?: string };
 
 /** Sends each user's message to every device they subscribed; drops subscriptions the push service says are gone. */
 async function send(admin: SupabaseClient, messages: Map<string, Message>) {
@@ -54,7 +57,7 @@ async function send(admin: SupabaseClient, messages: Map<string, Message>) {
       try {
         await webpush.sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-          JSON.stringify({ ...m, url: "/" }),
+          JSON.stringify({ ...m, url: m.url ?? "/" }),
           { TTL: 12 * 60 * 60 },
         );
         sent++;
@@ -128,10 +131,33 @@ Deno.serve(async (req) => {
   });
 
   try {
+    // Checked first: a status request must never fall into the morning run below.
+    const status = req.headers.get("x-status-secret");
+    if (status !== null) {
+      if (!sameSecret(status, Deno.env.get("STATUS_SECRET") ?? "")) return json({ error: "forbidden" }, 403);
+      const body = (await req.json().catch(() => null)) ?? {};
+      if (body.health === true) {
+        const { data, error } = await admin.from("heartbeats").select("at").eq("name", "push-reminders").maybeSingle();
+        if (error) throw error;
+        return json({ lastRun: data?.at ?? null });
+      }
+      if (body.alert) {
+        const alert = parseAlert(body.alert);
+        if (!alert) return json({ error: "bad alert" }, 400);
+        const user = Deno.env.get("ALERT_USER_ID");
+        if (!user) return json({ error: "no alert user" }, 500);
+        return json(await send(admin, new Map([[user, { ...alert, url: "https://status.chakkritton.com" }]])));
+      }
+      return json({ error: "bad request" }, 400);
+    }
+
     const cron = req.headers.get("x-cron-secret");
     if (cron !== null) {
       if (!sameSecret(cron, Deno.env.get("PUSH_CRON_SECRET") ?? "")) return json({ error: "forbidden" }, 403);
-      return json(await morning(admin));
+      const result = await morning(admin);
+      const { error } = await admin.from("heartbeats").upsert({ name: "push-reminders", at: new Date().toISOString() });
+      if (error) throw error;
+      return json(result);
     }
 
     // Anyone else must be a signed-in user, and can only reach their own devices.

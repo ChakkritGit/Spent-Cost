@@ -73,6 +73,17 @@ iOS 16.4+: open the app in Safari → Share → Add to Home Screen → open it f
 the icon → Settings → เปิดการแจ้งเตือน → ส่งทดสอบ. In Safari itself iOS does
 not offer Web Push; Settings says so.
 
+## Health alerts
+
+The status worker (`portfolio/status`) uses this same function: with its own
+`x-status-secret` header (never the cron secret, so it cannot trigger the morning
+run) it can ask when the morning job last ran (`{"health":true}`) and push an
+alert (`{"alert":{"title","body"}}`) to one user's devices. To turn that on:
+
+1. Run migration `0004_heartbeats.sql` (the morning job writes its last run there).
+2. `npx supabase secrets set STATUS_SECRET=<new random value> ALERT_USER_ID=<your auth user id>`; set the same `STATUS_SECRET` on the status worker with `npx wrangler secret put STATUS_SECRET`
+3. Redeploy: `npx supabase functions deploy push-reminders --no-verify-jwt`
+
 ## What is verified, and what is not
 
 - `supabase/functions/_shared/reminders.ts` (who gets what text, and which plan

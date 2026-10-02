@@ -25,3 +25,10 @@ test("the home page is not public", () => {
 test("app routes are not public", () => {
   expect(isPublicPath("/plans")).toBe(false);
 });
+
+test("only the exact health endpoint under /api is public", () => {
+  expect(isPublicPath("/api/health")).toBe(true);
+  expect(isPublicPath("/api/health-x")).toBe(false);
+  expect(isPublicPath("/api/health/x")).toBe(false);
+  expect(isPublicPath("/api/other")).toBe(false);
+});
