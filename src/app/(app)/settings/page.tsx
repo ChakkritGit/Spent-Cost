@@ -25,6 +25,20 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         google={google ? String(google.identity_data?.email ?? "ผูกแล้ว") : null}
         failed={link === "failed"}
       />
+      <section className="flex flex-col gap-3 border-b border-ink px-4 py-5">
+        <h2 className="headline text-[22px] font-bold">สถานะระบบ</h2>
+        <p className="text-[13px] leading-relaxed text-muted">
+          ดูว่าแอป ฐานข้อมูล และการแจ้งเตือนบิลทำงานปกติไหม ตรวจทุก 5 นาที
+        </p>
+        <a
+          href="https://status.chakkritton.com"
+          target="_blank"
+          rel="noreferrer noopener"
+          className="inline-flex h-10 w-fit items-center border border-ink bg-surface px-3.5 font-mono text-xs font-bold"
+        >
+          เปิดหน้าสถานะ ↗
+        </a>
+      </section>
       <section className="flex flex-col gap-2.5 border-b border-ink px-4 py-5">
         <h2 className="headline text-[22px] font-bold">ติดตั้งเป็นแอป</h2>
         <p className="text-[13px] leading-relaxed text-muted">
