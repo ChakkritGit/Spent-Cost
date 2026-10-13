@@ -1,0 +1,255 @@
+diff --git a/status/src/checks.ts b/status/src/checks.ts
+--- a/status/src/checks.ts
++++ b/status/src/checks.ts
+@@ -1,4 +1,4 @@
+-import type { CheckId, Env, Result } from './types'
++import type { CheckId, Env, Result, FailureReason } from './types'
+ 
+ export const CHECKS: { id: CheckId; group: 'portfolio' | 'spentcost' | 'whiteboard' | 'drivemusic'; name: string; hourly?: true }[] = [
+   { id: 'portfolio', group: 'portfolio', name: 'Portfolio' },
+@@ -15,13 +15,29 @@
+ 
+ const TIMEOUT_MS = 10_000
+ 
+-/** One request with a timeout. Any throw, including the timeout, is a failed check. */
+-export async function httpCheck(id: CheckId, url: string, init: RequestInit, isOk: (res: Response) => Promise<boolean>): Promise<Result> {
++/** Preserve the actual elapsed time and a safe failure category for diagnostics.
++ * Only read-only probes opt into one retry for a transient transport failure. */
++export async function httpCheck(id: CheckId, url: string, init: RequestInit, isOk: (res: Response) => Promise<boolean | FailureReason>, retries = 0): Promise<Result> {
+   const t0 = Date.now()
+-  const ok = await fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) })
+-    .then(isOk)
+-    .catch(() => false)
+-  return { id, ok, ms: Date.now() - t0 }
++  let result: Result = { id, ok: false, ms: 0 }
++  for (let attempt = 0; attempt <= retries; attempt++) {
++    try {
++      const response = await fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) })
++      if (!response.ok) {
++        result = { id, ok: false, ms: 0, reason: 'http-error', httpStatus: response.status }
++      } else {
++        const verdict = await isOk(response)
++        result = { id, ok: verdict === true, ms: 0, ...(verdict === true ? {} : { reason: verdict === false ? 'unhealthy' : verdict }) }
++      }
++    } catch (error) {
++      const name = (error as { name?: string } | null)?.name
++      result = { id, ok: false, ms: 0, reason: name === 'TimeoutError' || name === 'AbortError' ? 'timeout' : 'network' }
++    }
++    const transient = result.reason === 'timeout' || result.reason === 'network' ||
++      (result.reason === 'http-error' && [502, 503, 504].includes(result.httpStatus ?? 0))
++    if (result.ok || !transient) break
++  }
++  return { ...result, ms: Date.now() - t0 }
+ }
+ 
+ export const jsonOk = async (r: Response) => r.ok && ((await r.json().catch(() => ({}))) as { ok?: unknown }).ok === true
+@@ -29,10 +45,14 @@
+ /** The morning job runs daily; 26 hours leaves two hours of slack before it counts as missed. */
+ export const fresh = (iso: unknown, now = Date.now()) => {
+   const t = typeof iso === 'string' ? Date.parse(iso) : NaN
+-  return Number.isFinite(t) && now - t <= 26 * 3600_000
++  return Number.isFinite(t) && t <= now + 5 * 60_000 && now - t <= 26 * 3600_000
+ }
+ 
+-const remindersOk = async (r: Response) => r.ok && fresh(((await r.json().catch(() => ({}))) as { lastRun?: unknown }).lastRun)
++const remindersOk = async (r: Response): Promise<boolean | FailureReason> => {
++  const body = await r.json().catch(() => null) as { lastRun?: unknown } | null
++  if (!body || typeof body !== 'object' || !('lastRun' in body)) return 'invalid-response'
++  return fresh(body.lastRun) ? true : 'heartbeat-stale'
++}
+ 
+ /**
+  * A room object answers a plain request with "ok" (whiteboard-rooms' /__health);
+@@ -77,6 +97,7 @@
+       env.SUPABASE_FUNCTION_URL,
+       { method: 'POST', headers: { 'x-status-secret': env.STATUS_SECRET, 'content-type': 'application/json' }, body: '{"health":true}' },
+       remindersOk,
++      1, // The health read is safe to retry; no notifications are sent by this request.
+     ),
+     httpCheck('whiteboard', 'https://whiteboard.chakkritton.com/', {}, async (r) => r.status === 200),
+     // Through the service binding, not the public URL: that one fails in 13ms with Cloudflare's 1042.
+diff --git a/status/src/types.ts b/status/src/types.ts
+--- a/status/src/types.ts
++++ b/status/src/types.ts
+@@ -1,14 +1,19 @@
+ export type CheckId = 'portfolio' | 'assistant' | 'ai' | 'expenses' | 'reminders' | 'whiteboard' | 'rooms' | 'music' | 'musicauth' | 'musicsync'
++export type FailureReason = 'http-error' | 'timeout' | 'network' | 'invalid-response' | 'unhealthy' | 'heartbeat-stale'
+ export interface Result {
+   id: CheckId
+   ok: boolean
+   ms: number
++  reason?: FailureReason
++  httpStatus?: number
+ }
+ export interface Service {
+   status: 'up' | 'slow' | 'down' | 'unknown'
+   fails: number
+   since: number
+   ms: number
++  reason?: FailureReason
++  httpStatus?: number
+   checkedAt: number
+ }
+ export interface Incident {
+diff --git a/status/src/state.ts b/status/src/state.ts
+--- a/status/src/state.ts
++++ b/status/src/state.ts
+@@ -27,7 +27,7 @@
+ 
+   for (const r of results) {
+     const old: Service = services[r.id] ?? { status: 'unknown', fails: 0, since: now, ms: 0, checkedAt: 0 }
+-    const s: Service = { ...old, ms: r.ms, checkedAt: now }
++    const s: Service = { ...old, ms: r.ms, checkedAt: now, reason: r.reason, httpStatus: r.httpStatus }
+     const set = (status: Service['status']) => {
+       if (status !== s.status) s.since = now
+       s.status = status
+diff --git a/status/src/page.ts b/status/src/page.ts
+--- a/status/src/page.ts
++++ b/status/src/page.ts
+@@ -13,6 +13,12 @@
+ ] as const
+ const LABEL = { up: 'ปกติ', slow: 'ช้า', down: 'ล่ม', unknown: 'ยังไม่มีข้อมูล' } as const
+ 
++const REASON = {
++  'http-error': 'ปลายทางตอบผิดพลาด', timeout: 'ตรวจสถานะเกินเวลาที่กำหนด',
++  network: 'เชื่อมต่อปลายทางไม่ได้', 'invalid-response': 'ข้อมูลตรวจสถานะไม่ถูกต้อง',
++  unhealthy: 'ปลายทางรายงานปัญหา', 'heartbeat-stale': 'งานส่งบิลยังไม่มีรอบสำเร็จภายใน 26 ชั่วโมง',
++} as const
++
+ const esc = (v: unknown) => String(v).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
+ const hhmm = (ms: number) => new Date(ms + 7 * 60 * 60_000).toISOString().slice(11, 16)
+ const dayMonth = (ms: number) => bangkokDay(ms).slice(8) + '/' + bangkokDay(ms).slice(5, 7) + ' ' + hhmm(ms)
+@@ -32,7 +38,7 @@
+   return {
+     services: checks.map((c) => {
+       const s = state.services[c.id]
+-      return { id: c.id, name: c.name, group: c.group, status: statusOf(state, c.id), ms: s?.ms ?? 0, since: s?.since ?? 0, uptime90: uptime90(state, c.id) }
++      return { id: c.id, name: c.name, group: c.group, status: statusOf(state, c.id), ms: s?.ms ?? 0, since: s?.since ?? 0, uptime90: uptime90(state, c.id), reason: s?.reason ?? null, httpStatus: s?.httpStatus ?? null, checkedAt: s?.checkedAt ?? 0 }
+     }),
+     incidents: recent(state, now).map((i) => ({ name: nameOf(checks, i.id), start: i.start, end: i.end ?? null })),
+     lastRun: state.lastRun,
+@@ -108,9 +114,12 @@
+       .map((c) => {
+         const st = statusOf(state, c.id)
+         const up = uptime90(state, c.id)
+-        const ms = state.services[c.id]?.ms
++        const service = state.services[c.id]
++        const ms = service?.ms
++        const detail = service?.reason ? `${REASON[service.reason]}${service.httpStatus ? ` (HTTP ${service.httpStatus})` : ''}` : ''
+         return `<li class="row">
+ <div class="head"><b>${esc(c.name)}</b><span class="st ${st}">${esc(LABEL[st])}${st !== 'unknown' && ms ? ` <small>${esc(ms)} ms</small>` : ''}</span></div>
++${detail ? `<p class="check-detail">${esc(detail)}</p>` : ''}
+ <div class="strip">${strip(state, c.id, now)}</div>
+ <div class="axis"><span class="d90">90 วันก่อน</span><span class="d30">30 วันก่อน</span><span class="rule"></span><span>${up === null ? 'ยังไม่มีข้อมูล' : `uptime ${esc(up.toFixed(1))}%`}</span><span class="rule"></span><span>วันนี้</span></div>
+ </li>`
+@@ -154,6 +163,7 @@
+ .row{padding:18px 20px}.row+.row{border-top:1px solid var(--line)}
+ .head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:10px}
+ .head b{font-weight:600}
++.check-detail{margin:0 0 10px;color:var(--muted);font-size:.85rem}
+ .st{font-size:.9rem;white-space:nowrap}.st small{color:var(--muted);font-variant-numeric:tabular-nums}
+ .st.up{color:var(--ok)}.st.slow{color:var(--warn)}.st.down{color:var(--bad)}.st.unknown{color:var(--muted)}
+ .strip{display:flex;gap:3px;height:34px}
+@@ -179,6 +189,7 @@
+ </header>
+ <div class="banner ${tone}" role="status"><i aria-hidden="true">${icon}</i>${esc(head)}</div>
+ <p class="checked">${esc(checked)}</p>
++<p class="check-detail">ms คือเวลารวมของการตรวจจากระบบเฝ้าระวัง รวมการเชื่อมต่อและการลองซ้ำเมื่อจำเป็น</p>
+ ${groups}
+ <section><h2>เหตุขัดข้องใน 7 วันที่ผ่านมา</h2>${incidents}</section>
+ </main>
+diff --git a/status/test/checks.test.ts b/status/test/checks.test.ts
+--- a/status/test/checks.test.ts
++++ b/status/test/checks.test.ts
+@@ -32,6 +32,43 @@
+   assert.equal(fresh(new Date(now - 27 * 3600_000).toISOString(), now), false)
+   assert.equal(fresh(null, now), false)
+   assert.equal(fresh('garbage', now), false)
++  assert.equal(fresh(new Date(now + 6 * 60_000).toISOString(), now), false)
++})
++
++test('a read-only probe retries transport failures once, preserving error details', async () => {
++  let calls = 0
++  stub(() => ++calls === 1 ? json({}, 503) : json({ ok: true }))
++  assert.equal((await httpCheck('reminders', 'https://fn', {}, jsonOk, 1)).ok, true)
++  assert.equal(calls, 2)
++  calls = 0
++  stub(() => { calls++; return json({}, 403) })
++  const forbidden = await httpCheck('reminders', 'https://fn', {}, jsonOk, 1)
++  assert.equal(calls, 1)
++  assert.equal(forbidden.reason, 'http-error')
++  assert.equal(forbidden.httpStatus, 403)
++  calls = 0
++  stub(() => { calls++; throw new DOMException('timeout', 'TimeoutError') })
++  const timedOut = await httpCheck('reminders', 'https://fn', {}, jsonOk, 1)
++  assert.equal(calls, 2)
++  assert.equal(timedOut.reason, 'timeout')
++})
++
++test('reminder checks distinguish stale heartbeats and malformed responses without retrying', async () => {
++  const env = { HEALTH_TOKEN: 't', STATUS_SECRET: 's', SUPABASE_FUNCTION_URL: 'https://fn' } as never
++  for (const [body, reason] of [
++    [{ lastRun: new Date().toISOString() }, undefined],
++    [{ lastRun: null }, 'heartbeat-stale'],
++    [{ lastRun: new Date(Date.now() - 27 * 3600_000).toISOString() }, 'heartbeat-stale'],
++    [{}, 'invalid-response'],
++    ['bad', 'invalid-response'],
++  ] as const) {
++    let calls = 0
++    stub((url) => { if (url === 'https://fn') { calls++; return json(body) } return json({ ok: true }) })
++    const result = (await runChecks(env, Date.UTC(2026, 9, 12, 10, 5))).find((r) => r.id === 'reminders')!
++    assert.equal(result.ok, reason === undefined)
++    assert.equal(result.reason, reason)
++    assert.equal(calls, 1)
++  }
+ })
+ 
+ test('runChecks asks the model only in minutes 0-4', async () => {
+diff --git a/status/test/state.test.ts b/status/test/state.test.ts
+--- a/status/test/state.test.ts
++++ b/status/test/state.test.ts
+@@ -99,3 +99,11 @@
+   run(s, [bad], T + 10 * MIN)
+   assert.equal(JSON.stringify(s), frozen)
+ })
++
++test('failure diagnostics survive state updates and clear on recovery', () => {
++  const failed: Result = { id: 'reminders', ok: false, ms: 20_000, reason: 'timeout' }
++  const state = run(emptyState(), [failed], T).state
++  assert.equal(state.services.reminders?.reason, 'timeout')
++  const recovered = run(state, [{ id: 'reminders', ok: true, ms: 100 }], T + 5 * MIN).state
++  assert.equal(recovered.services.reminders?.reason, undefined)
++})
+diff --git a/status/test/page.test.ts b/status/test/page.test.ts
+--- a/status/test/page.test.ts
++++ b/status/test/page.test.ts
+@@ -72,3 +72,15 @@
+   assert.equal(get('/status').status, 404)
+   assert.equal(get('/favicon.svg').headers.get('Content-Type'), 'image/svg+xml')
+ })
++
++test('shows failure categories and the meaning of measured latency', async () => {
++  const s = allUp()
++  s.services.reminders = { ...svc('down', 20_000), reason: 'timeout' }
++  assert.match(render(s, NOW), /ตรวจสถานะเกินเวลาที่กำหนด/)
++  assert.match(render(s, NOW), /20000 ms/)
++  assert.match(render(s, NOW), /ms คือเวลารวมของการตรวจ/)
++  s.services.reminders = { ...svc('down'), reason: 'heartbeat-stale' }
++  assert.match(render(s, NOW), /งานส่งบิลยังไม่มีรอบสำเร็จภายใน 26 ชั่วโมง/)
++  const j = await handle(new Request('https://status.chakkritton.com/api/status'), s, NOW).json() as { services: { id: string; reason: string }[] }
++  assert.equal(j.services.find((service) => service.id === 'reminders')?.reason, 'heartbeat-stale')
++})
+diff --git a/status/README.md b/status/README.md
+--- a/status/README.md
++++ b/status/README.md
+@@ -13,3 +13,10 @@
+ 7. Allow notifications in Spent-Cost Settings on the phone that should get alerts
+ 
+ Try it locally: `npx wrangler dev --test-scheduled`, then `curl "http://localhost:8787/__scheduled?cron=*/5+*+*+*+*"` and open http://localhost:8787.
++
++
++Reminder health checks retry one temporary timeout/network/502/503/504 failure.
++Authentication errors, malformed health responses and old heartbeats are never
++retried. The displayed `ms` includes the whole probe and any retry; the page and
++JSON API preserve a safe failure reason and HTTP status. Existing history remains
++unchanged. Deploy Spent-Cost's lightweight health handler first, then this Worker.
