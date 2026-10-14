@@ -3,6 +3,7 @@ import { JetBrains_Mono, Noto_Sans, Noto_Sans_Thai } from "next/font/google";
 import { Providers } from "@/components/theme-provider";
 import { ServiceWorkerRegistrar } from "@/components/sw-register";
 import "./globals.css";
+import { DockAnalytics } from "@/components/dock-analytics";
 
 // Both Noto faces carry a `wdth` axis, so the condensed headline cut is the
 // same family as the body rather than a second typeface. Latin first, so
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           {children}
           <ServiceWorkerRegistrar />
+          <DockAnalytics />
         </Providers>
       </body>
     </html>
