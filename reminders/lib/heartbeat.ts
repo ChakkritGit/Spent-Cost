@@ -1,5 +1,5 @@
 /** A lightweight health read: no Supabase SDK or Web Push initialization. */
-export async function readHeartbeat(base: string, serviceKey: string, request: typeof fetch = fetch) {
+export async function readHeartbeat(base: string, serviceKey: string, request: (input: string, init?: RequestInit) => Promise<Response> = fetch) {
   const response = await request(`${base}/rest/v1/heartbeats?name=eq.push-reminders&select=at&limit=1`, {
     headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
     signal: AbortSignal.timeout(5000),

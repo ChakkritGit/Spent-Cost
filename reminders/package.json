@@ -1,0 +1,20 @@
+{
+  "name": "spent-cost-reminders",
+  "private": true,
+  "type": "module",
+  "description": "Morning bill reminders (Web Push) for Spent/Cost \u2014 Bun + Elysia service on the VPS",
+  "scripts": {
+    "start": "bun server.ts",
+    "test": "bun test server.test.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.116.0",
+    "elysia": "1.4.30",
+    "jose": "6.2.4",
+    "web-push": "3.6.7"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.2",
+    "@types/web-push": "3.6.4"
+  }
+}

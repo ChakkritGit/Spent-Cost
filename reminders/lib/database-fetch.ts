@@ -1,10 +1,12 @@
 /** Retry only PostgREST's explicit rejection of a JWT issued in the future.
  * Authentication failed before SQL execution, so replaying a write is safe.
  * Network failures and other errors must not replay potentially completed writes. */
+type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
 export function databaseFetch(
-  request: typeof fetch = fetch,
+  request: Fetch = fetch,
   pause: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-): typeof fetch {
+): Fetch {
   return async (input, init) => {
     const original = new Request(input, init);
     for (let attempt = 0; ; attempt++) {

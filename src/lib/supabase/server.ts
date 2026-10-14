@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { dataFetch } from "./data-fetch";
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -7,6 +8,8 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // data on the VPS (internal address), login on Supabase
+      global: { fetch: dataFetch(process.env.DATA_URL) },
       cookies: {
         getAll: () => cookieStore.getAll(),
         setAll: (toSet) => {
