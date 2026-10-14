@@ -1,5 +1,6 @@
-// Public by design: the status worker polls it. Plain fetches to Supabase, no client and no
-// cookies; the anon key is already public. Booleans and timings only, never error text.
+// Public by design: the status page polls it. Plain fetches, no client and no cookies; the anon key is
+// already public. Booleans and timings only, never error text. The data is on the VPS (DATA_URL, the
+// database gateway), login on Supabase.
 const headers = { "Cache-Control": "public, s-maxage=15" };
 
 async function probe(url: string, init: RequestInit) {
@@ -15,7 +16,7 @@ export async function GET() {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
   const [db, auth] = await Promise.all([
     // RLS answers [] to anon: a 200 still proves PostgREST and Postgres are up.
-    probe(`${base}/rest/v1/plans?select=id&limit=1`, { headers: { apikey: key, Authorization: `Bearer ${key}` } }),
+    probe(`${process.env.DATA_URL ?? base}/rest/v1/plans?select=id&limit=1`, { headers: { apikey: key, Authorization: `Bearer ${key}` } }),
     probe(`${base}/auth/v1/health`, { headers: { apikey: key } }),
   ]);
   const ok = db.ok && auth.ok;
