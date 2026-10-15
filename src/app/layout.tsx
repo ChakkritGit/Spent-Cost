@@ -40,7 +40,14 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Spent/Cost" },
   // From /public under the icon-*.png names the proxy's matcher already lets
   // through, so the login page (signed out) gets its favicon too.
-  icons: { icon: "/icon-192.png", apple: { url: "/icon-180.png", sizes: "180x180" } },
+  icons: {
+    icon: "/icon-192.png",
+    // a larger one too: iOS 27 asks for 240px and draws a letter tile from a 180 alone
+    apple: [
+      { url: "/icon-180.png", sizes: "180x180" },
+      { url: "/apple-touch-icon-512.png", sizes: "512x512" },
+    ],
+  },
 };
 
 // Literal hex: the Viewport API takes no custom properties. Mirrors --paper in
