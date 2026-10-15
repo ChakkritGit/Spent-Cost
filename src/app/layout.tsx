@@ -4,6 +4,7 @@ import { Providers } from "@/components/theme-provider";
 import { ServiceWorkerRegistrar } from "@/components/sw-register";
 import "./globals.css";
 import { DockAnalytics } from "@/components/dock-analytics";
+import { STARTUP_IMAGES } from "@/lib/splash";
 
 // Both Noto faces carry a `wdth` axis, so the condensed headline cut is the
 // same family as the body rather than a second typeface. Latin first, so
@@ -37,7 +38,7 @@ export const metadata: Metadata = {
     description: "บันทึกรายจ่าย ผ่อน และหนี้ เดือนต่อเดือน พร้อมปฏิทินและแจ้งเตือนก่อนครบกำหนด",
     images: ["/og.jpg"],
   },
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "Spent/Cost" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Spent/Cost", startupImage: STARTUP_IMAGES },
   // From /public under the icon-*.png names the proxy's matcher already lets
   // through, so the login page (signed out) gets its favicon too.
   icons: {

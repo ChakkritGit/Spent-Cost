@@ -33,5 +33,5 @@ export async function proxy(request: NextRequest) {
 export const config = {
   // robots.txt, sitemap.xml and llms.txt are for crawlers, who are never signed in; iOS asks for
   // /apple-touch-icon*.png on its own and must get the image, not a redirect to /login.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|icon-.*\\.png|apple-touch-icon.*\\.png|og\\.jpg|robots\\.txt|sitemap\\.xml|llms\\.txt).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|icon-.*\\.png|apple-touch-icon.*\\.png|splash/|og\\.jpg|robots\\.txt|sitemap\\.xml|llms\\.txt).*)"],
 };
