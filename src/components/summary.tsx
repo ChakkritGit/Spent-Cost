@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Num } from "@/components/num";
 import { baht } from "@/lib/money";
 
 /** The debt still owed as the page's one big figure, then the month in four ruled cells. */
@@ -28,9 +29,9 @@ export function Summary({
         <span className="label">หนี้คงเหลือ — DEBT REMAINING</span>
         {debtTotal > 0 ? (
           <>
-            <p className="headline text-[60px] leading-none text-brand">{baht(Math.max(0, debtRemaining))}</p>
+            <p className="headline text-[60px] leading-none text-brand"><Num value={baht(Math.max(0, debtRemaining))} /></p>
             <div className="flex h-3.5 border border-ink" role="img" aria-label={`จ่ายหนี้แล้ว ${percent}`}>
-              <div className="bg-brand" style={{ width: `${Math.min(1, ratio) * 100}%` }} />
+              <div className="bg-brand transition-[width] duration-500 ease-out" style={{ width: `${Math.min(1, ratio) * 100}%` }} />
               <div className="ticks flex-1" />
             </div>
             <div className="flex justify-between gap-3 font-mono text-xs">
@@ -60,7 +61,7 @@ function Cell({ label, value, unit, warn, className = "" }: { label: string; val
     <div className={`flex min-w-0 flex-col gap-1.5 p-4 ${className}`}>
       <span className={`label ${warn ? "text-warn" : ""}`}>{warn && "● "}{label}</span>
       <span className="headline truncate text-[28px] font-bold">
-        {value}
+        <Num value={value} />
         {unit && <span className="ms-1.5 text-sm font-medium [font-stretch:100%]">{unit}</span>}
       </span>
     </div>

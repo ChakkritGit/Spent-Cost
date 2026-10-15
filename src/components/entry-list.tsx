@@ -17,7 +17,7 @@ export function EntryList({ entries, categories, today, showDay = true }: { entr
   const [editing, setEditing] = useState<Entry | null>(null);
   return (
     <>
-      <ul>
+      <ul className="stagger">
         {entries.map((e) => (
           <EntryRow key={e.id} entry={e} today={today} showDay={showDay} onOpen={() => setEditing(e)} />
         ))}

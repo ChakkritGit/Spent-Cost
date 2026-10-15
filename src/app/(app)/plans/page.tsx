@@ -29,7 +29,7 @@ export default async function PlansPage() {
 
       <Heading title={`รายการประจำ · ${subs.length}`} note={subs.length ? `${baht(Math.round(monthly * 100) / 100)} / เดือน` : undefined} />
       {subs.length === 0 && <Empty>ยังไม่มีรายการประจำ — เช่น ค่าเช่า Netflix ค่าเน็ต</Empty>}
-      <ul>
+      <ul className="stagger">
         {subs.map((p) => (
           <SubscriptionRow key={p.id} plan={p} categories={categories} paidCount={paidCount(p.id)} />
         ))}
