@@ -189,3 +189,9 @@
   :is(.page-enter, .stagger) > :nth-child(6) { animation-delay: 200ms; }
   :is(.page-enter, .stagger) > :nth-child(n + 7) { animation-delay: 230ms; }
 }
+
+/* rolling numbers (lib/roll.ts): one slot per character, the outgoing glyph overlaid while it leaves */
+.roll { display: inline-flex; font-variant-numeric: tabular-nums; white-space: pre; }
+.roll-slot { position: relative; display: inline-block; }
+.roll-glyph { display: inline-block; will-change: transform, filter, opacity; }
+.roll-out { position: absolute; inset: 0 auto auto 0; }
