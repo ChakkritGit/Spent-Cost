@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <PinGate hasPin={hasPin} pinLength={pinLengthOf(data?.pin_hash ?? null)}>
       <Nav categories={categories} today={todayIso()} />
       <div className="lg:ps-56">
-        <main className="mx-auto min-h-dvh max-w-2xl bg-paper pb-28 sm:border-x sm:border-ink lg:pb-10">{children}</main>
+        <main className="mx-auto min-h-dvh max-w-2xl bg-paper pb-[calc(7rem+env(safe-area-inset-bottom))] sm:border-x sm:border-ink lg:pb-10">{children}</main>
       </div>
     </PinGate>
   );

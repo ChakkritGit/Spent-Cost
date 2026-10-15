@@ -46,7 +46,7 @@ export function Nav({ categories, today }: { categories: string[]; today: string
     <>
       <nav
         aria-label="เมนูหลัก"
-        className="fixed inset-x-0 bottom-0 z-20 grid h-[calc(68px+env(safe-area-inset-bottom))] grid-cols-5 border-t border-ink bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 grid h-[calc(68px+env(safe-area-inset-bottom))] grid-cols-5 border-t border-ink bg-surface pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] lg:hidden"
       >
         {LINKS.slice(0, 2).map(tab)}
         <div className="grid place-items-center">

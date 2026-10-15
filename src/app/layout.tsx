@@ -46,6 +46,8 @@ export const metadata: Metadata = {
 // Literal hex: the Viewport API takes no custom properties. Mirrors --paper in
 // globals.css and background_color in manifest.ts.
 export const viewport: Viewport = {
+  // Lets the page run under the home indicator; without it env(safe-area-inset-*) is always 0.
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f8f9fa" },
     { media: "(prefers-color-scheme: dark)", color: "#050505" },
