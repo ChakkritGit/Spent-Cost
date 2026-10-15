@@ -6,6 +6,7 @@ import "./globals.css";
 import { DockAnalytics } from "@/components/dock-analytics";
 import { STARTUP_IMAGES } from "@/lib/splash";
 import { Splash } from "@/components/splash";
+import { PwaChrome } from "@/components/pwa-chrome";
 
 // Both Noto faces carry a `wdth` axis, so the condensed headline cut is the
 // same family as the body rather than a second typeface. Latin first, so
@@ -69,6 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh antialiased">
         <Providers>
           <Splash />
+          <PwaChrome />
           {children}
           <ServiceWorkerRegistrar />
           <DockAnalytics />

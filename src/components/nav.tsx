@@ -33,6 +33,7 @@ export function Nav({ categories, today }: { categories: string[]; today: string
       key={href}
       href={href}
       aria-current={active(href) ? "page" : undefined}
+      data-tab-bounce
       className={`flex flex-col items-center justify-center gap-0.5 text-[11px] ${
         active(href) ? "font-semibold text-brand shadow-[inset_0_3px_0_var(--brand)]" : "text-muted"
       }`}
