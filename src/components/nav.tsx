@@ -38,7 +38,9 @@ export function Nav({ categories, today }: { categories: string[]; today: string
         active(href) ? "font-semibold text-brand shadow-[inset_0_3px_0_var(--brand)]" : "text-muted"
       }`}
     >
-      <Icon name={icon} />
+      <span data-tab-icon className="inline-grid place-items-center">
+        <Icon name={icon} />
+      </span>
       {label}
     </Link>
   );
