@@ -192,9 +192,9 @@
 
 /* rolling numbers (lib/roll.ts): one slot per character, the outgoing glyph overlaid while it leaves */
 .roll { display: inline-flex; font-variant-numeric: tabular-nums; white-space: pre; }
-.roll-slot { position: relative; display: inline-block; }
+.roll-slot { position: relative; display: inline-block; vertical-align: baseline; }
 .roll-glyph { display: inline-block; }
-.roll-slot.rolling { overflow: hidden; -webkit-mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent); }
+.roll-slot.rolling { clip-path: inset(0 -0.25em); -webkit-mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent); }
 .roll-strip { position: absolute; inset: 0 0 auto 0; display: flex; flex-direction: column; align-items: center; will-change: transform, filter; }
 .roll-strip .roll-glyph { display: flex; align-items: center; justify-content: center; }
 
@@ -234,3 +234,6 @@
   .splash { transition: none; }
   .splash-bar::after { animation: none; width: 100%; opacity: 0.5; }
 }
+
+/* a space between number and unit is a slot of its own: keep its width whatever the parent's white-space */
+.roll .roll-glyph { white-space: pre; }
