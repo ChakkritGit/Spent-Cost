@@ -18,7 +18,7 @@ the service role: the reminders service signs its own short-lived service_role t
 database gateway.
 
 Its settings are in `/opt/apps/env/reminders.env` on the VPS (mode 600): `VAPID_PUBLIC_KEY`,
-`VAPID_PRIVATE_KEY`, `PUSH_CRON_SECRET`, `STATUS_SECRET`, `ALERT_USER_ID`, `SUPABASE_URL` (to check
+`VAPID_PRIVATE_KEY`, `PUSH_CRON_SECRET`, `STATUS_SECRET`, `SUPABASE_URL` (to check
 sessions against the project's public keys) and `PGRST_JWT_SECRET`. `NEXT_PUBLIC_VAPID_PUBLIC_KEY` is
 in the app's env. Never paste the private key or the secrets into git.
 
@@ -32,15 +32,12 @@ iOS 16.4+: open the app in Safari → Share → Add to Home Screen → open it f
 the icon → Settings → เปิดการแจ้งเตือน → ส่งทดสอบ. In Safari itself iOS does
 not offer Web Push; Settings says so.
 
-## Health alerts
+## Health check
 
-The status page (status.chakkritton.com) uses this same service: with its own
-`x-status-secret` header (never the cron secret, so it cannot trigger the morning
-run) it can ask when the morning job last ran (`{"health":true}`) and push an
-alert (`{"alert":{"title","body"}}`) to one user's devices. To turn that on:
-
-`STATUS_SECRET` must be the same in `reminders.env` and the status page's `status.env`;
-`ALERT_USER_ID` is your Supabase Auth user id.
+The status page (status.chakkritton.com) asks this service, with its own `x-status-secret`
+header (never the cron secret, so it cannot trigger the morning run), when the morning job last
+ran (`{"health":true}`). `STATUS_SECRET` must be the same in `reminders.env` and `status.env`.
+"Service down" alerts no longer come through Spent/Cost: they go to Dock's chat on the VPS.
 
 ## What is verified, and what is not
 

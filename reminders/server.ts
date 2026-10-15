@@ -4,7 +4,7 @@
 // It runs itself every ten minutes from 08:00 to 23:50 Bangkok until the day's run completes (what pg_cron
 // did on Supabase), and answers three kinds of request, each authenticated here:
 // - x-cron-secret → the morning run now (manual trigger);
-// - x-status-secret → the last run, or an alert to one user (the status page; it can never start a run);
+// - x-status-secret → when the morning run last completed (the status page; it can never start a run);
 // - a signed-in user's Supabase session from Settings → a test push to their own devices.
 // Data goes through the database gateway (Supabase-compatible /rest/v1) with a service_role token.
 // Setup: docs/push-notifications.md.
@@ -17,7 +17,6 @@ import { databaseFetch } from "./lib/database-fetch";
 import { sendDaily, endpointHash, mapDevices, type Claim, type Outcome } from "./lib/daily-delivery";
 import { deliver } from "./lib/delivery";
 import { readHeartbeat } from "./lib/heartbeat";
-import { parseAlert } from "./lib/alert";
 import { bangkokToday, addDays, missingMonthRows, nextMonthStart, reminderFor, type Due } from "./lib/reminders";
 
 const env = (name: string) => process.env[name] ?? "";
@@ -223,14 +222,6 @@ export async function handle(req: Request): Promise<Response> {
       if (body.health === true) {
         const lastRun = await readHeartbeat(DB_URL, await serviceKey(), databaseFetch());
         return json({ lastRun });
-      }
-      if (body.alert) {
-        const alert = parseAlert(body.alert);
-        if (!alert) return json({ error: "bad alert" }, 400);
-        const user = env("ALERT_USER_ID");
-        if (!user) return json({ error: "no alert user" }, 500);
-        const result = await send(await createAdmin(), new Map([[user, { ...alert, url: "https://status.chakkritton.com" }]]));
-        return json(result, result.failed ? 503 : 200);
       }
       return json({ error: "bad request" }, 400);
     }
