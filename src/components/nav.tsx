@@ -34,6 +34,12 @@ export function Nav({ categories, today }: { categories: string[]; today: string
       href={href}
       aria-current={active(href) ? "page" : undefined}
       data-tab-bounce
+      // Like Dock: the tab of the page you are on scrolls it back to the top.
+      onClick={(e) => {
+        if (pathname !== href) return;
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      }}
       className={`flex flex-col items-center justify-center gap-0.5 text-[11px] ${
         active(href) ? "font-semibold text-brand shadow-[inset_0_3px_0_var(--brand)]" : "text-muted"
       }`}
