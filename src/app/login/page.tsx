@@ -29,10 +29,13 @@ const APP_LD = {
 export default function LoginPage() {
   // useSearchParams needs a Suspense boundary on a statically rendered page.
   return (
-    <Suspense>
+    <>
+      {/* outside the Suspense boundary: its contents render only in the browser on this static page */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(APP_LD) }} />
-      <Login />
-    </Suspense>
+      <Suspense>
+        <Login />
+      </Suspense>
+    </>
   );
 }
 
