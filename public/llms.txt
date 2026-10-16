@@ -22,3 +22,7 @@ Spent/Cost is a personal ledger for recurring bills, instalments and debts. A su
 - [Author: Chakkrit Laolit](https://chakkritton.com)
 - [Project write-up](https://chakkritton.com/projects/spent-cost-with-claude-code)
 - [System status](https://status.chakkritton.com)
+
+## Optional
+
+- [Full text for language models](https://expenses.chakkritton.com/llms-full.txt)

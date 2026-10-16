@@ -4,10 +4,33 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+/** schema.org description of the app for search engines (the only public page). */
+const APP_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Spent/Cost",
+  "url": "https://expenses.chakkritton.com/",
+  "inLanguage": "th",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "Any (web browser, installable PWA)",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "THB"
+  },
+  "description": "บันทึกรายจ่ายประจำ ผ่อนสินค้า และหนี้ เดือนต่อเดือน พร้อมปฏิทินและแจ้งเตือนก่อนครบกำหนด",
+  "author": {
+    "@type": "Person",
+    "name": "Chakkrit Laolit",
+    "url": "https://chakkritton.com"
+  }
+};
+
 export default function LoginPage() {
   // useSearchParams needs a Suspense boundary on a statically rendered page.
   return (
     <Suspense>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(APP_LD) }} />
       <Login />
     </Suspense>
   );
