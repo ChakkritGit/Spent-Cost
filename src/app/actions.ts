@@ -29,9 +29,11 @@ async function run(fn: () => Promise<void>): Promise<Result> {
 
 async function userId(): Promise<string> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("ไม่ได้เข้าสู่ระบบ");
-  return user.id;
+  // the signed token's subject (verified locally, see src/proxy.ts), no round trip to Supabase
+  const { data } = await supabase.auth.getClaims();
+  const id = data?.claims?.sub;
+  if (!id) throw new Error("ไม่ได้เข้าสู่ระบบ");
+  return id;
 }
 
 /**

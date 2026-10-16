@@ -20,9 +20,12 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  // getUser, not getSession: it revalidates the token with Supabase rather
-  // than trusting a cookie the browser could have been handed.
-  const { data: { user } } = await supabase.auth.getUser();
+  // getClaims, not getSession: it verifies the token's signature (ES256, the project's public keys,
+  // cached for 10 minutes) instead of trusting a cookie the browser could have been handed. It was
+  // getUser, which asks Supabase on every request: 130-380 ms from the VPS before any page could start.
+  // An expired token is refreshed here as before (and the new cookies set on the response).
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub ?? null;
 
   if (!user && !isPublicPath(request.nextUrl.pathname)) {
     return NextResponse.redirect(new URL("/login", request.url));
