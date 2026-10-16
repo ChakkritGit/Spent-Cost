@@ -8,7 +8,6 @@ A completed day is skipped by both the scheduler and the function.
 ```
 reminders service (VPS, every ten minutes 01:00–16:50 UTC until completion)
   └─ reads entries through the database gateway (service role) ─► Web Push ─► phone
-Settings "ส่งทดสอบ" ─ user session ─► /data/functions/v1/push-reminders ─┘
 ```
 
 Since 2026-10-15 this runs on the VPS, not on Supabase: `reminders/server.ts` (Bun + Elysia,
@@ -18,8 +17,7 @@ the service role: the reminders service signs its own short-lived service_role t
 database gateway.
 
 Its settings are in `/opt/apps/env/reminders.env` on the VPS (mode 600): `VAPID_PUBLIC_KEY`,
-`VAPID_PRIVATE_KEY`, `PUSH_CRON_SECRET`, `STATUS_SECRET`, `SUPABASE_URL` (to check
-sessions against the project's public keys) and `PGRST_JWT_SECRET`. `NEXT_PUBLIC_VAPID_PUBLIC_KEY` is
+`VAPID_PRIVATE_KEY`, `PUSH_CRON_SECRET`, `STATUS_SECRET` and `PGRST_JWT_SECRET`. `NEXT_PUBLIC_VAPID_PUBLIC_KEY` is
 in the app's env. Never paste the private key or the secrets into git.
 
 A push to `main` rebuilds the app and the reminders service (deploy/apps in the Thai-Weather repo).
@@ -29,7 +27,7 @@ the VPS's Docker network (it still skips a day that already completed).
 ## 5. On the phone
 
 iOS 16.4+: open the app in Safari → Share → Add to Home Screen → open it from
-the icon → Settings → เปิดการแจ้งเตือน → ส่งทดสอบ. In Safari itself iOS does
+the icon → Settings → เปิดการแจ้งเตือน. In Safari itself iOS does
 not offer Web Push; Settings says so.
 
 ## Health check
@@ -76,7 +74,6 @@ delivery failures returns 503 and does not advance its successful heartbeat.
 With migration `0006_daily_reminder_retries.sql`, morning sends use durable
 per-device receipts and one provider attempt per scheduled run. An explicit
 HTTP rejection can retry on a later cron; accepted devices never replay.
-Status alerts and user tests retain their existing immediate push retry behavior.
 Expired devices (404/410) are removed.
 
 Apply migration `0005_reminder_cron_timeout.sql` to give the existing cron job

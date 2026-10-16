@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { deletePushSubscription, savePushSubscription } from "@/app/actions";
-import { createClient } from "@/lib/supabase/client";
 
 const KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
@@ -90,15 +89,6 @@ export function NotificationSettings() {
     setBusy(false);
   }
 
-  async function test() {
-    setBusy(true);
-    setMessage(null);
-    const { data, error } = await createClient().functions.invoke<{ sent: number }>("push-reminders", { body: {} });
-    setBusy(false);
-    if (error || !data) setMessage({ text: "ส่งทดสอบไม่สำเร็จ — ตรวจว่า deploy ฟังก์ชัน push-reminders แล้ว", error: true });
-    else setMessage({ text: data.sent ? `ส่งแล้ว ${data.sent} เครื่อง` : "ไม่พบเครื่องที่เปิดการแจ้งเตือนไว้", error: !data.sent });
-  }
-
   const button = "h-11 border border-ink px-4 font-mono text-xs font-bold disabled:opacity-60";
 
   return (
@@ -126,14 +116,9 @@ export function NotificationSettings() {
         </button>
       )}
       {state === "on" && (
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={test} disabled={busy} className={`${button} bg-surface`}>
-            ส่งทดสอบ
-          </button>
-          <button type="button" onClick={turnOff} disabled={busy} className={`${button} border-danger bg-surface text-danger`}>
-            ปิดการแจ้งเตือน
-          </button>
-        </div>
+        <button type="button" onClick={turnOff} disabled={busy} className={`${button} self-start border-danger bg-surface text-danger`}>
+          ปิดการแจ้งเตือน
+        </button>
       )}
       {message && (
         <p role="status" className={`text-sm ${message.error ? "text-danger" : "text-brand"}`}>{message.text}</p>

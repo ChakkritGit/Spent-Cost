@@ -2,15 +2,14 @@
 // which needs the service role, and the service role must never be in the Next.js app.
 //
 // It runs itself every ten minutes from 08:00 to 23:50 Bangkok until the day's run completes (what pg_cron
-// did on Supabase), and answers three kinds of request, each authenticated here:
+// did on Supabase), and answers two kinds of request, each authenticated here:
 // - x-cron-secret → the morning run now (manual trigger);
-// - x-status-secret → when the morning run last completed (the status page; it can never start a run);
-// - a signed-in user's Supabase session from Settings → a test push to their own devices.
+// - x-status-secret → when the morning run last completed (the status page; it can never start a run).
 // Data goes through the database gateway (Supabase-compatible /rest/v1) with a service_role token.
 // Setup: docs/push-notifications.md.
 
 import { Elysia } from "elysia";
-import { SignJWT, createRemoteJWKSet, jwtVerify } from "jose";
+import { SignJWT } from "jose";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import webpush from "web-push";
 import { databaseFetch } from "./lib/database-fetch";
@@ -22,8 +21,6 @@ import { bangkokToday, addDays, missingMonthRows, nextMonthStart, reminderFor, t
 const env = (name: string) => process.env[name] ?? "";
 const PORT = Number(env("PORT") || 8792);
 const DB_URL = env("DB_URL") || "http://apps-dbgw:8791";
-const SUPABASE_URL = env("SUPABASE_URL").replace(/\/+$/, "");
-const jwks = SUPABASE_URL ? createRemoteJWKSet(new URL(`${SUPABASE_URL}/auth/v1/.well-known/jwks.json`)) : null;
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -199,18 +196,6 @@ async function run(): Promise<{ status: number; body: Record<string, unknown> }>
   return { status: 200, body: result };
 }
 
-/** A signed-in user's Supabase session (ES256, the project's public keys) → their id. */
-async function sessionUser(authorization: string | null): Promise<string | null> {
-  const token = authorization?.replace(/^Bearer\s+/i, "") ?? "";
-  if (!token || !jwks) return null;
-  try {
-    const { payload } = await jwtVerify(token, jwks, { issuer: `${SUPABASE_URL}/auth/v1`, audience: "authenticated" });
-    return payload.role === "authenticated" && typeof payload.sub === "string" ? payload.sub : null;
-  } catch {
-    return null;
-  }
-}
-
 export async function handle(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   try {
@@ -233,14 +218,7 @@ export async function handle(req: Request): Promise<Response> {
       return json(r.body, r.status);
     }
 
-    // Anyone else must be a signed-in user, and can only reach their own devices.
-    const user = await sessionUser(req.headers.get("Authorization"));
-    if (!user) return json({ error: "unauthorized" }, 401);
-    const result = await send(
-      await createAdmin(),
-      new Map([[user, { title: "ทดสอบการแจ้งเตือน", body: "ถ้าเห็นข้อความนี้ การแจ้งเตือนของ Spent/Cost ใช้ได้แล้ว" }]]),
-    );
-    return json(result, result.failed ? 503 : 200);
+    return json({ error: "unauthorized" }, 401);
   } catch (e) {
     console.error(e);
     return json({ error: "failed" }, 500);
