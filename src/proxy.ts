@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isPublicPath } from "@/lib/auth-paths";
 
 export async function proxy(request: NextRequest) {
+  // Container liveness must work during an auth outage and must not refresh any session.
+  if (request.nextUrl.pathname === "/api/healthz") return NextResponse.next();
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

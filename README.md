@@ -35,3 +35,11 @@ Runs on the VPS (expenses.chakkritton.com): a push to `main` rebuilds the app an
 service (see deploy/apps in the Thai-Weather repo). Login is Supabase Auth; the data is in the
 VPS's Postgres (`db/schema.sql`), reached through a gateway that checks the Supabase session, so
 RLS works as it did on Supabase. Bill reminders: `reminders/` and `docs/push-notifications.md`.
+
+## VPS runtime
+
+The Next.js standalone server runs on Bun 1.4.2. Elysia 1.4.30 handles the read-only
+`/api/health` dependency probe and `/api/healthz` container liveness probe. Supabase Auth,
+server actions and data access keep their existing behavior. The separate Bun + Elysia
+reminders service is unchanged. Container health checks use `/api/healthz`, which does
+not render pages, query the database or send notifications.
